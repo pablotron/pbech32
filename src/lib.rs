@@ -15,14 +15,45 @@
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
 
-/// Error.
+/// String parse error.
+///
+/// # Examples
+///
+/// Try to parse an empty string:
+///
+/// ```
+/// # fn main() {
+/// use bech32::{Bech32, Err};
+/// let s = ""; // empty string
+/// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
+/// # }
+/// ```
+///
+/// Try to parse a string with an invalid character:
+///
+/// ```
+/// # fn main() {
+/// use bech32::{Bech32, Err};
+/// let s = "a 1xxxxxx"; // string with invalid bech32 character
+/// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChar));
+/// # }
+/// ```
+///
+/// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+///   "BIP-173: Bech32"
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Err {
   /// Invalid string length.
   ///
-  /// The length of a [Bech32][] string must be in the range `8..91`.
+  /// The length of a [Bech32][] string must be in the range `8..256`.
   ///
-  /// # Example
+  /// **Note:** This library will parse strings up to 256 characters in
+  /// length; the  maximum length of a [Bech32][] string according to
+  /// [BIP173][] is 90 characters,
+  ///
+  /// # Examples
+  ///
+  /// Try to parse an empty string:
   ///
   /// ```
   /// # fn main() {
@@ -32,8 +63,20 @@ pub enum Err {
   /// # }
   /// ```
   ///
+  /// Try to parse a string that is too long:
+  ///
+  /// ```
+  /// # fn main() {
+  /// use bech32::{Bech32, Err};
+  /// let s = str::repeat("x", 256); // long string
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
+  /// # }
+  /// ```
+  ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
   ///   "BIP173: Bech32"
+  /// [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "BIP-173: Bech32"
   InvalidLen,
 
   /// String contains an invalid character.
@@ -41,6 +84,8 @@ pub enum Err {
   /// A [Bech32][] string must only contain alphanumeric [ASCII][] characters.
   ///
   /// # Example
+  ///
+  /// Try to parse a string with an invalid character:
   ///
   /// ```
   /// # fn main() {
@@ -63,10 +108,13 @@ pub enum Err {
   ///
   /// # Example
   ///
+  /// Try to parse a string with both uppercase and lowercase
+  /// characters:
+  ///
   /// ```
   /// # fn main() {
   /// use bech32::{Bech32, Err};
-  /// let s = "Ab1xxxxxx"; // mixed-case string
+  /// let s = "Ab1xxxxxx"; // string with mixed-case characters
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::MixedCase));
   /// # }
   /// ```
@@ -82,10 +130,13 @@ pub enum Err {
   ///
   /// # Example
   ///
+  /// Try to parse a string which does not have a separator between the
+  /// human-readable part and the data part:
+  ///
   /// ```
   /// # fn main() {
   /// use bech32::{Bech32, Err};
-  /// let s = "avxxxxxx"; // string w/o separator
+  /// let s = "avxxxxxx"; // string without separator
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::MissingSeparator));
   /// # }
   /// ```
@@ -99,12 +150,24 @@ pub enum Err {
   /// The length of the human-readable part of a [Bech32][] string must
   /// be in the range `[1..84]`.
   ///
-  /// # Example
+  /// # Examples
+  ///
+  /// Try to parse a string with an empty human-readable part:
   ///
   /// ```
   /// # fn main() {
   /// use bech32::{Bech32, Err};
-  /// let s = "1axxxxxx"; // string with empty human-readable part
+  /// let s = "1axxxxxx"; // string with empty HRP
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidHrpLen));
+  /// # }
+  /// ```
+  ///
+  /// Try to parse a string with a human-readable part that is too long:
+  ///
+  /// ```
+  /// # fn main() {
+  /// use bech32::{Bech32, Err};
+  /// let s = str::repeat("a", 84) + "1xxxxxx"; // string with long HRP
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidHrpLen));
   /// # }
   /// ```
@@ -116,6 +179,8 @@ pub enum Err {
   /// Invalid checksum.
   ///
   /// # Example
+  ///
+  /// Try to parse a string with an invalid checksum:
   ///
   /// ```
   /// # fn main() {
@@ -307,8 +372,11 @@ impl RawBech32 {
   /// Parse string as bech32 string with format from given
   /// specification.
   pub fn new(spec: Spec, s: &str) -> Result<Self, Err> {
-    // check that string length is in the range 8..91
-    if s.len() < 8 || s.len() > 90 {
+    // check that string length is in the range 8..256
+    //
+    // NOTE: BIP173 limits the maximum length to 90 characters rather
+    // than 256 characters.
+    if s.len() < 8 || s.len() > 255 {
       return Err(Err::InvalidLen);
     }
 
