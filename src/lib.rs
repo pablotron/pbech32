@@ -700,6 +700,47 @@ impl RawBech32 {
   /// # }
   /// ```
   ///
+  /// Parse string using [`Scheme::Bech32`]:
+  ///
+  /// ```
+  /// # fn main() -> Result<(), bech32::Err> {
+  /// use bech32::{RawBech32, Scheme};
+  ///
+  /// // expected result
+  /// let exp = RawBech32 {
+  ///   scheme: Scheme::Bech32,
+  ///   hrp: "a".to_string(),
+  ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+  /// };
+  ///
+  /// let s = "a1qypqxpq9wunxjs"; // bech32m string
+  /// let got = RawBech32::new(s, Some(Scheme::Bech32))?; // parse string
+  /// assert_eq!(got, exp); // check result
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
+  /// Parse string using scheme auto-detection (equivalent to calling
+  /// [`str::parse()`]):
+  ///
+  /// ```
+  /// # fn main() -> Result<(), bech32::Err> {
+  /// use bech32::{RawBech32, Scheme};
+  ///
+  /// // expected result
+  /// let exp = RawBech32 {
+  ///   scheme: Scheme::Bech32m,
+  ///   hrp: "a".to_string(),
+  ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+  /// };
+  ///
+  /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
+  /// let got = RawBech32::new(s, None)?; // parse string
+  /// assert_eq!(got, exp); // check result
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
   ///   "Bech32 (BIP173)"
   /// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
