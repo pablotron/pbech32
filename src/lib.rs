@@ -16,7 +16,7 @@
 //
 // TODO:
 // [x] encode/decode data into 5-bit form
-// [ ] auto-detect spec
+// [x] auto-detect scheme
 // [ ] docs
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
@@ -201,22 +201,91 @@ pub enum Err {
   InvalidChecksum,
 }
 
-/// Bech32 specification.
+/// [Bech32][] variant.
+///
+/// TODO
+///
+/// # Examples
+///
+/// Parse [Bech32][bip173] string:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::{Bech32, Scheme};
+/// let s = "a1qypqxpq9wunxjs"; // bech32 string (BIP173 checksum)
+/// let b: Bech32 = s.parse()?; // parse string
+/// assert_eq!(b.scheme, Scheme::Bech32); // check scheme
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Parse [Bech32m][bip350] string:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::{Bech32, Scheme};
+/// let s = "a1qypqxpq9mqr2hj"; // bech32m string (BIP350 checksum)
+/// let b: Bech32 = s.parse()?; // parse string
+/// assert_eq!(b.scheme, Scheme::Bech32m); // check scheme
+/// # Ok(())
+/// # }
+/// ```
+///
+/// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+///   "BIP-173: Bech32"
+/// [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+///   "BIP173: Bech32"
+/// [bip350]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+///   "BIP350: Bech32m"
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Spec {
-  /// Bech32 spec (BIP173).
+pub enum Scheme {
+  /// [Bech32][bip173] variant, as specified in [BIP173][].
+  ///
+  /// # Example
+  ///
+  /// Parse [Bech32][bip173] string:
+  ///
+  /// ```
+  /// # fn main() -> Result<(), bech32::Err> {
+  /// use bech32::{Bech32, Scheme};
+  /// let s = "a1qypqxpq9wunxjs"; // bech32 string (BIP173 checksum)
+  /// let b: Bech32 = s.parse()?; // parse string
+  /// assert_eq!(b.scheme, Scheme::Bech32); // check scheme
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
+  /// [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "BIP173: Bech32"
   Bech32,
 
-  /// Bech32m spec (BIP350).
+  /// [Bech32m][bip350] variant, as specified in [BIP350][].
+  ///
+  /// # Example
+  ///
+  /// Parse [Bech32m][bip350] string:
+  ///
+  /// ```
+  /// # fn main() -> Result<(), bech32::Err> {
+  /// use bech32::{Bech32, Scheme};
+  /// let s = "a1qypqxpq9mqr2hj"; // bech32m string (BIP350 checksum)
+  /// let b: Bech32 = s.parse()?; // parse string
+  /// assert_eq!(b.scheme, Scheme::Bech32m); // check scheme
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
+  /// [bip350]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+  ///   "BIP350: Bech32m"
   Bech32m,
 }
 
-impl Spec {
-  /// Get checksum mask for specification.
+impl Scheme {
+  /// Get scheme checksum mask.
   fn checksum_mask(&self) -> u32 {
     match self {
-      Spec::Bech32 => 1,
-      Spec::Bech32m => 0x2bc830a3,
+      Scheme::Bech32 => 1,
+      Scheme::Bech32m => 0x2bc830a3,
     }
   }
 }
@@ -272,7 +341,7 @@ mod chars {
 
 /// Checksum functions.
 pub mod checksum {
-  use super::{chars, Spec};
+  use super::{chars, Scheme};
   const GEN: [u32; 5] = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
 
   /// Encode checksum as byte array.
@@ -291,7 +360,7 @@ pub mod checksum {
 
   /// Create checksum from case-normalized human-readable part and
   /// unpacked (e.g. 5 bits per octet) data.
-  pub fn make(spec: Spec, hrp: &str, data: &[u8]) -> [u8; 6] {
+  pub fn make(scheme: Scheme, hrp: &str, data: &[u8]) -> [u8; 6] {
     let mut sum: u32 = 1;
 
     sum = hrp.bytes().fold(sum, |r, b| polymod(r, b >> 5)); // absorb hrp high bits
@@ -300,7 +369,7 @@ pub mod checksum {
     sum = data.iter().fold(sum, |r, b| polymod(r, *b)); // absorb data
     sum = (0..6).fold(sum, |r, _| polymod(r, 0)); // absorb 6 zeros
 
-    encode(sum ^ spec.checksum_mask()) // finalize, encode as [u8; 6]
+    encode(sum ^ scheme.checksum_mask()) // mask, encode as [u8; 6]
   }
 }
 
@@ -364,8 +433,8 @@ pub mod bits {
 /// Raw bech32 data.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RawBech32 {
-  /// Bech32 specification.
-  pub spec: Spec,
+  /// Bech32 scheme.
+  pub scheme: Scheme,
 
   /// Human-readable part.
   pub hrp: String, // TODO: &'a str
@@ -375,9 +444,8 @@ pub struct RawBech32 {
 }
 
 impl RawBech32 {
-  /// Parse string as bech32 string with format from given
-  /// specification.
-  pub fn new(s: &str, spec: Option<Spec>) -> Result<Self, Err> {
+  /// Parse string as bech32 string using given scheme.
+  pub fn new(s: &str, scheme: Option<Scheme>) -> Result<Self, Err> {
     // check that string length is in the range 8..256
     //
     // NOTE: BIP173 limits the maximum length to 90 characters rather
@@ -416,18 +484,18 @@ impl RawBech32 {
     // get expected checksum from end of string
     let exp_csum = &s.as_bytes()[(s.len() - 6)..];
 
-    // get list of specs to try
-    let specs = match spec {
-      Some(spec) => vec![spec],
-      None => vec![Spec::Bech32m, Spec::Bech32],
+    // get list of schemes to try
+    let schemes = match scheme {
+      Some(scheme) => vec![scheme],
+      None => vec![Scheme::Bech32m, Scheme::Bech32],
     };
 
-    for spec in specs {
+    for scheme in schemes {
       // calculate checksum of hrp and data, then verify that it matches
       // the expected checksum
-      if checksum::make(spec, hrp, &data) == exp_csum {
+      if checksum::make(scheme, hrp, &data) == exp_csum {
         // checksum matches, return success
-        return Ok(Self { spec, data, hrp: hrp.to_string() });
+        return Ok(Self { scheme, data, hrp: hrp.to_string() });
       }
     }
 
@@ -455,8 +523,9 @@ impl std::fmt::Display for RawBech32 {
     }
 
     // write checksum
-    // note: unwrap() is safe here beca
-    let s = checksum::make(self.spec, &self.hrp, &self.data);
+    // note: unwrap() is safe here because output of make() is always
+    // valid UTF-8
+    let s = checksum::make(self.scheme, &self.hrp, &self.data);
     write!(f, "{}", str::from_utf8(&s).unwrap())?;
 
     Ok(())
@@ -466,8 +535,8 @@ impl std::fmt::Display for RawBech32 {
 /// Parsed Bech32 data.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Bech32 {
-  /// Bech32 specification.
-  pub spec: Spec,
+  /// Bech32 scheme
+  pub scheme: Scheme,
 
   /// Human-readable part.
   pub hrp: String, // TODO: &'a str
@@ -477,12 +546,12 @@ pub struct Bech32 {
 }
 
 impl Bech32 {
-  /// Parse string as bech32 string with format from given
+  /// Parse string as bech32 string with given scheme.
   /// specification.
-  pub fn new(s: &str, spec: Option<Spec>) -> Result<Self, Err> {
-    let r = RawBech32::new(s, spec)?;
+  pub fn new(s: &str, scheme: Option<Scheme>) -> Result<Self, Err> {
+    let r = RawBech32::new(s, scheme)?;
     let data = bits::convert::<5, 8>(r.data.as_ref());
-    Ok(Self { data, spec: r.spec, hrp: r.hrp.to_string() })
+    Ok(Self { data, scheme: r.scheme, hrp: r.hrp.to_string() })
   }
 }
 
@@ -508,7 +577,7 @@ impl std::fmt::Display for Bech32 {
 
     // write checksum
     // note: unwrap() is safe here beca
-    let s = checksum::make(self.spec, &self.hrp, &data);
+    let s = checksum::make(self.scheme, &self.hrp, &data);
     write!(f, "{}", str::from_utf8(&s).unwrap())?;
 
     Ok(())
@@ -654,14 +723,14 @@ mod tests {
     #[test]
     fn test_to_str() {
       let tests = vec![(
-        RawBech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![] },
         "a12uel5l",
       ), (
-        RawBech32 { spec: Spec::Bech32m, hrp: "a".to_string(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
         "a1lqfn3a",
       ), (
         RawBech32 {
-          spec: Spec::Bech32,
+          scheme: Scheme::Bech32,
           hrp: "bc".to_string(),
           data: vec![
             0b00000, 0b01000, 0b01000, 0b01101, 0b00111, 0b11001,
@@ -686,17 +755,23 @@ mod tests {
       let tests = vec![(
         "a12uel5l",
         RawBech32 {
-          spec: Spec::Bech32,
+          scheme: Scheme::Bech32,
           hrp: "a".to_string(),
           data: vec![],
         },
       ), (
         "A12UEL5L",
-        RawBech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![] },
+      ), (
+        "a1lqfn3a",
+        RawBech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
+      ), (
+        "A1LQFN3A",
+        RawBech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
       ), (
         "bc1qggd8ex3qpluj5wfhtzeq6vp87u7uxspxljx8se",
         RawBech32 {
-          spec: Spec::Bech32,
+          scheme: Scheme::Bech32,
           hrp: "bc".to_string(),
           data: vec![
             0b00000, 0b01000, 0b01000, 0b01101, 0b00111, 0b11001,
@@ -722,16 +797,16 @@ mod tests {
     #[test]
     fn test_to_str() {
       let tests = vec![(
-        Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
+        Bech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![] },
         "a12uel5l",
       ), (
-        Bech32 { spec: Spec::Bech32m, hrp: "a".to_string(), data: vec![] },
+        Bech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
         "a1lqfn3a",
       ), (
-        Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+        Bech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
         "a1qypqxpq9wunxjs",
       ), (
-        Bech32 { spec: Spec::Bech32m, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+        Bech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
         "a1qypqxpq9mqr2hj",
       )];
 
@@ -745,10 +820,22 @@ mod tests {
     fn test_from_str() {
       let tests = vec![(
         "a12uel5l",
-        Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
+        Bech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![] },
+      ), (
+        "A12UEL5L",
+        Bech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![] },
+      ), (
+        "a1lqfn3a",
+        Bech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
+      ), (
+        "A1LQFN3A",
+        Bech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
       ), (
         "a1qypqxpq9wunxjs",
-        Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+        Bech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+      ), (
+        "a1qypqxpq9mqr2hj",
+        Bech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
       )];
 
       for (s, exp) in tests {
