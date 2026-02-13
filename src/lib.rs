@@ -1,7 +1,11 @@
 //! [Bech32][] parsing and encoding library.
 //!
-//! Supports both [Bech32][] ([BIP173][]) strings and [Bech32m][]
-//! ([BIP350][]) strings.
+//! # Features
+//!
+//! - Supports [BIP173][] and [BIP350][] strings.
+//! - Implements [`std::str::FromStr`] and [`std::fmt::Display`] for
+//!   idiomatic string parsing and serialization.
+//! - No external dependencies.
 //!
 //! **Note:** This library relaxes the 90-character string length limit
 //! in [BIP173][] and allows strings of up to 256 characters in length.
@@ -32,7 +36,7 @@
 //!
 //! ```
 //! # fn main() -> Result<(), bech32::Err> {
-//! use bech32::{bits::convert, Bech32, Scheme};
+//! use bech32::{Bech32, Scheme};
 //!
 //! let exp = "a1qypqxpq9mqr2hj"; // expected result
 //!
@@ -806,9 +810,8 @@ impl RawBech32 {
   pub fn new(s: &str, scheme: Option<Scheme>) -> Result<Self, Err> {
     // check that string length is in the range 8..256
     //
-    // NOTE: BIP173 limits the maximum length to 90 characters rather
-    // than 256 characters.
-    if s.len() < 8 || s.len() > 255 {
+    // NOTE: The upper bound in BIP173 is 91 rather than 256.
+    if !(8..256).contains(&s.len()) {
       return Err(Err::InvalidLen);
     }
 
@@ -829,7 +832,7 @@ impl RawBech32 {
     let (hrp, enc) = s[..(s.len()-6)].rsplit_once('1').ok_or(Err::MissingSeparator)?;
 
     // check hrp length
-    if hrp.len() < 1 || hrp.len() > 83 {
+    if !(1..84).contains(&hrp.len()) {
       return Err(Err::InvalidHrpLen);
     }
 
@@ -921,7 +924,7 @@ impl std::fmt::Display for RawBech32 {
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{bits::convert, Bech32, Scheme};
+/// use bech32::{Bech32, Scheme};
 ///
 /// let exp = "a1qypqxpq9mqr2hj"; // expected result
 ///
