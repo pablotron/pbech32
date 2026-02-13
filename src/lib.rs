@@ -1,11 +1,62 @@
 //! [Bech32][] parsing and encoding library.
 //!
+//! Supports both [Bech32][] ([BIP173][]) strings and [Bech32m][]
+//! ([BIP350][]) strings.
+//!
+//! **Note:** This library relaxes the 90-character string length limit
+//! in [BIP173][] and allows strings of up to 256 characters in length.
+//!
+//! # Examples
+//!
+//! Parse [Bech32m][] string:
+//!
+//! ```
+//! # fn main() -> Result<(), bech32::Err> {
+//! use bech32::{Bech32, Scheme};
+//!
+//! // expected result
+//! let exp = Bech32 {
+//!   scheme: Scheme::Bech32m,
+//!   hrp: "a".to_string(),
+//!   data: vec![1, 2, 3, 4, 5],
+//! };
+//!
+//! let s = "a1qypqxpq9mqr2hj"; // bech32m string
+//! let got: Bech32 = s.parse()?; // parse string
+//! assert_eq!(got, exp); // check result
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! Convert [`Bech32`] structure to string:
+//!
+//! ```
+//! # fn main() -> Result<(), bech32::Err> {
+//! use bech32::{bits::convert, Bech32, Scheme};
+//!
+//! let exp = "a1qypqxpq9mqr2hj"; // expected result
+//!
+//! // populate structure
+//! let b = Bech32 {
+//!   scheme: Scheme::Bech32m,
+//!   hrp: "a".to_string(),
+//!   data: vec![1, 2, 3, 4, 5],
+//! };
+//!
+//! let got = b.to_string(); // convert to string
+//! assert_eq!(got, exp); // check result
+//! # Ok(())
+//! # }
+//! ```
+//!
 //! [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 //!   "Bech32 (BIP173)"
-//! [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-//!   "Bech32 (BIP173)"
-//! [bip350]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+//! [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
 //!   "Bech32m (BIP350)"
+//! [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+//!   "BIP173 (Bech32)"
+//! [bip350]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+//!   "BIP350 (Bech32m)"
 //! [ascii]: https://en.wikipedia.org/wiki/ASCII
 //!   "ASCII (Wikipedia)"
 
@@ -17,7 +68,8 @@
 // TODO:
 // [x] encode/decode data into 5-bit form
 // [x] auto-detect scheme
-// [ ] docs
+// [x] docs
+// [x] document longer string in header docs
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
 
