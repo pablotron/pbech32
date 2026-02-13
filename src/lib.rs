@@ -128,6 +128,57 @@ pub mod checksum {
   }
 }
 
+/// Data encoding/decoding functions.
+pub mod data {
+  /// Get capacity needed for conversion.
+  fn capacity<const SRC_BITS: usize, const DST_BITS: usize>(len: usize) -> usize {
+    SRC_BITS * len / DST_BITS + match (SRC_BITS, DST_BITS, len % DST_BITS) {
+      (8, 5, 0) => 0,
+      (8, 5, 1) => 1,
+      (8, 5, 2) => 2,
+      (8, 5, 3) => 2,
+      (8, 5, 4) => 3,
+
+      (5, 8, 0) => 0,
+      (5, 8, 1) => 1,
+      (5, 8, 2) => 2,
+      (5, 8, 3) => 2,
+      (5, 8, 4) => 3,
+      (5, 8, 5) => 4,
+      (5, 8, 6) => 4,
+      (5, 8, 7) => 5,
+
+      _ => unreachable!(),
+    }
+  }
+
+  /// Encode packed data as 5-bit bytes.
+  pub fn convert<const SRC_BITS: usize, const DST_BITS: usize>(bytes: &[u8]) -> Vec<u8> {
+    let mask: u32 = (1 << (DST_BITS as u32)) - 1;
+    let mut r = Vec::with_capacity(capacity::<SRC_BITS, DST_BITS>(bytes.len()));
+    let mut acc: u32 = 0;
+    let mut acc_len = 0;
+
+    for b in bytes {
+      acc = (acc << SRC_BITS) | (*b as u32);
+      acc_len += SRC_BITS;
+      while acc_len >= DST_BITS {
+        acc_len -= DST_BITS;
+        r.push(((acc >> acc_len) & mask) as u8);
+        acc &= (1 << acc_len) - 1;
+      }
+    }
+
+    // flush bits
+    if acc_len > 0 {
+      acc <<= DST_BITS - acc_len;
+      r.push((acc & mask) as u8);
+    }
+
+    r
+  }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Bech32 {
   /// Bech32 specification.
@@ -278,6 +329,118 @@ mod tests {
       for (s, exp) in tests {
         let got: Bech32 = s.parse().expect(s);
         assert_eq!(got, exp, "{s}: {got} != {exp}");
+      }
+    }
+  }
+
+  mod data {
+    use super::super::data;
+
+    #[test]
+    fn test_convert_85() {
+      let tests = vec![(
+        vec![1u8, 2, 3, 4, 5],
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+        ],
+      ), (
+        vec![1u8, 2, 3, 4, 5, 6],
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+          0b00000, 0b110_00,
+        ],
+      ), (
+        vec![1u8, 2, 3, 4, 5, 6, 7],
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+          0b00000, 0b110_00, 0b00011, 0b1_0000,
+        ],
+      ), (
+        vec![1u8, 2, 3, 4, 5, 6, 7, 8],
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+          0b00000, 0b110_00, 0b00011, 0b1_0000,
+          0b1000_0,
+        ],
+      ), (
+        vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9],
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+          0b00000, 0b110_00, 0b00011, 0b1_0000,
+          0b1000_0, 0b00010, 0b01_000,
+        ],
+      ), (
+        vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+          0b00000, 0b110_00, 0b00011, 0b1_0000,
+          0b1000_0, 0b00010, 0b01_000, 0b01010,
+        ],
+      )];
+
+      for (src, exp) in tests {
+        let got = data::convert::<8, 5>(src.as_ref());
+        assert_eq!(got, exp);
+      }
+    }
+
+    #[test]
+    fn test_convert_58() {
+      let tests = vec![(
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+        ],
+        vec![1u8, 2, 3, 4, 5],
+      ), (
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+          0b00000, 0b110_00,
+        ],
+        vec![1u8, 2, 3, 4, 5, 6, 0],
+      ), (
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+          0b00000, 0b110_00, 0b00011, 0b1_0000,
+        ],
+        vec![1u8, 2, 3, 4, 5, 6, 7, 0],
+      ), (
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+          0b00000, 0b110_00, 0b00011, 0b1_0000,
+          0b1000_0,
+        ],
+        vec![1u8, 2, 3, 4, 5, 6, 7, 8, 0],
+      ), (
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+          0b00000, 0b110_00, 0b00011, 0b1_0000,
+          0b1000_0, 0b00010, 0b01_000,
+        ],
+        vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 0],
+      ), (
+        vec![
+          0b00000u8, 0b001_00, 0b00001, 0b0_0000,
+          0b0011_0, 0b00001, 0b00_000, 0b00101,
+          0b00000, 0b110_00, 0b00011, 0b1_0000,
+          0b1000_0, 0b00010, 0b01_000, 0b01010,
+        ],
+        vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      )];
+
+      for (src, exp) in tests {
+        let got = data::convert::<5, 8>(src.as_ref());
+        assert_eq!(got, exp);
       }
     }
   }
