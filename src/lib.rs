@@ -129,7 +129,7 @@ pub mod checksum {
 }
 
 /// Data encoding/decoding functions.
-pub mod data {
+pub mod bits {
   /// Get capacity needed for conversion.
   fn capacity<const SRC_BITS: usize, const DST_BITS: usize>(len: usize) -> usize {
     SRC_BITS * len / DST_BITS + match (SRC_BITS, DST_BITS, len % DST_BITS) {
@@ -179,8 +179,9 @@ pub mod data {
   }
 }
 
+/// Raw bech32 data.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Bech32 {
+pub struct RawBech32 {
   /// Bech32 specification.
   pub spec: Spec,
 
@@ -191,7 +192,7 @@ pub struct Bech32 {
   pub data: Vec<u8>,
 }
 
-impl Bech32 {
+impl RawBech32 {
   /// Parse string as bech32 string with format from given
   /// specification.
   pub fn new(spec: Spec, s: &str) -> Result<Self, Err> {
@@ -235,11 +236,11 @@ impl Bech32 {
       return Err(Err::InvalidChecksum);
     }
 
-    Ok(Bech32 { spec, data, hrp: hrp.to_string() })
+    Ok(Self { spec, data, hrp: hrp.to_string() })
   }
 }
 
-impl std::str::FromStr for Bech32 {
+impl std::str::FromStr for RawBech32 {
   type Err = Err;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -247,7 +248,7 @@ impl std::str::FromStr for Bech32 {
   }
 }
 
-impl std::fmt::Display for Bech32 {
+impl std::fmt::Display for RawBech32 {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     // write hrp
     write!(f, "{}1", self.hrp)?;
@@ -266,18 +267,68 @@ impl std::fmt::Display for Bech32 {
   }
 }
 
+/// Bech32 data.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Bech32 {
+  /// Bech32 specification.
+  pub spec: Spec,
+
+  /// Human-readable part.
+  pub hrp: String, // TODO: &'a str
+
+  /// Packed data.
+  pub data: Vec<u8>,
+}
+
+impl Bech32 {
+  /// Parse string as bech32 string with format from given
+  /// specification.
+  pub fn new(spec: Spec, s: &str) -> Result<Self, Err> {
+    let r = RawBech32::new(spec, s)?;
+    let data = bits::convert::<5, 8>(r.data.as_ref());
+    Ok(Self { data, spec: r.spec, hrp: r.hrp.to_string() })
+  }
+}
+
+impl std::str::FromStr for Bech32 {
+  type Err = Err;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    Self::new(Spec::Bech32, s)
+  }
+}
+
+impl std::fmt::Display for Bech32 {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    // write hrp
+    write!(f, "{}1", self.hrp)?;
+
+    // encode/write data
+    for b in bits::convert::<8, 5>(&self.data.as_ref()) {
+      write!(f, "{}", LUT[b as usize])?;
+    }
+
+    // write checksum
+    // note: unwrap() is safe here beca
+    let s = checksum::make(self.spec, &self.hrp, &self.data);
+    write!(f, "{}", str::from_utf8(&s).unwrap())?;
+
+    Ok(())
+  }
+}
+
 #[cfg(test)]
 mod tests {
-  mod bech32 {
+  mod rawbech32 {
     use super::super::*;
 
     #[test]
     fn test_to_str() {
       let tests = vec![(
-        Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
+        RawBech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
         "a12uel5l",
       ), (
-        Bech32 {
+        RawBech32 {
           spec: Spec::Bech32,
           hrp: "bc".to_string(),
           data: vec![
@@ -302,17 +353,17 @@ mod tests {
     fn test_from_str() {
       let tests = vec![(
         "a12uel5l",
-        Bech32 {
+        RawBech32 {
           spec: Spec::Bech32,
           hrp: "a".to_string(),
           data: vec![],
         },
       ), (
         "A12UEL5L",
-        Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
+        RawBech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
       ), (
         "bc1qggd8ex3qpluj5wfhtzeq6vp87u7uxspxljx8se",
-        Bech32 {
+        RawBech32 {
           spec: Spec::Bech32,
           hrp: "bc".to_string(),
           data: vec![
@@ -327,14 +378,14 @@ mod tests {
       )];
 
       for (s, exp) in tests {
-        let got: Bech32 = s.parse().expect(s);
+        let got: RawBech32 = s.parse().expect(s);
         assert_eq!(got, exp, "{s}: {got} != {exp}");
       }
     }
   }
 
-  mod data {
-    use super::super::data;
+  mod bits {
+    use super::super::bits;
 
     #[test]
     fn test_convert_85() {
@@ -385,7 +436,7 @@ mod tests {
       )];
 
       for (src, exp) in tests {
-        let got = data::convert::<8, 5>(src.as_ref());
+        let got = bits::convert::<8, 5>(src.as_ref());
         assert_eq!(got, exp);
       }
     }
@@ -439,7 +490,7 @@ mod tests {
       )];
 
       for (src, exp) in tests {
-        let got = data::convert::<5, 8>(src.as_ref());
+        let got = bits::convert::<5, 8>(src.as_ref());
         assert_eq!(got, exp);
       }
     }
