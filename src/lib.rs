@@ -293,13 +293,18 @@ impl Scheme {
 /// Character encoding functions.
 mod chars {
   /// Encoding lookup table (LUT).
+  ///
+  /// Used to map 5-bit [`u8`] to character.
   pub(crate) const LUT: [char; 32] = [
     'q', 'p', 'z', 'r', 'y', '9', 'x', '8', 'g', 'f', '2', 't', 'v', 'd', 'w', '0',
     's', '3', 'j', 'n', '5', '4', 'k', 'h', 'c', 'e', '6', 'm', 'u', 'a', '7', 'l',
   ];
 
-  /// Decode character as 5-bit [`u8`].  Returns [`None`] if the input
-  /// is not a valid bech32 character.
+  /// Decode character as 5-bit [`u8`] or return [`None`] if the
+  /// character is not a valid Bech32 character.
+  ///
+  /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "BIP-173: Bech32"
   pub(crate) fn decode(c: char) -> Option<u8> {
     match c {
       'q' => Some(0),
@@ -339,12 +344,61 @@ mod chars {
   }
 }
 
-/// Checksum functions.
+/// [BCH][] checksum functions.
+///
+/// Notes:
+///
+/// 1. The human-readable part must be lowercase.
+/// 2. The data should be 5-bit encoded.  In other words, only the
+///    lower 5 bits of each byte contain data.
+///
+/// # Examples
+///
+/// Create [Bech32][] checksum:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::{bits::convert, checksum::make, Scheme};
+///
+/// let exp = b"wunxjs"; // expected checksum
+/// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
+/// let got = make(Scheme::Bech32, "a", data); // make checksum
+/// assert_eq!(&got, exp); // verify checksum
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Create [Bech32m][] checksum:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::{bits::convert, checksum::make, Scheme};
+///
+/// let exp = b"mqr2hj"; // expected checksum
+/// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
+/// let got = make(Scheme::Bech32m, "a", data); // make checksum
+/// assert_eq!(&got, exp); // verify checksum
+/// # Ok(())
+/// # }
+/// ```
+///
+/// [bch]: https://en.wikipedia.org/wiki/BCH_code
+///   "BCH code (Wikipedia)"
+/// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+///   "BIP173: Bech32"
+/// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+///   "BIP350: Bech32m"
 pub mod checksum {
   use super::{chars, Scheme};
+
+  /// Generator polynomials.
+  ///
+  /// Used by [`polymod()`].
   const GEN: [u32; 5] = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
 
-  /// Encode checksum as byte array.
+  /// Encode checksum as 6-byte array.
+  ///
+  /// Called by [`make()`].
   fn encode(sum: u32) -> [u8; 6] {
     core::array::from_fn(|i| {
       chars::LUT[((sum as usize) >> (5 * (5 - i))) & 0x1f] as u8
@@ -352,21 +406,64 @@ pub mod checksum {
   }
 
   /// Update checksum `sum` with 5-bit value `val`.
+  ///
+  /// **Note:** Only absorbs the bottom 5 bits of value.
   fn polymod(mut sum: u32, val: u8) -> u32 {
+    // assert_eq!(val & !0x1f, 0); // check upper bits
     let t = sum >> 25; // get bits 25..30
-    sum = ((sum & 0x1ffffff) << 5) | ((val & 0x1f) as u32);
+    sum = ((sum & 0x1ffffff) << 5) | ((val & 0x1f) as u32); // absorb bits
     (0..5).map(|i| GEN[i] & !((t >> i) & 1).wrapping_sub(1)).fold(sum, |r, v| r ^ v)
   }
 
-  /// Create checksum from case-normalized human-readable part and
-  /// unpacked (e.g. 5 bits per octet) data.
-  pub fn make(scheme: Scheme, hrp: &str, data: &[u8]) -> [u8; 6] {
+  /// Create checksum for given scheme, human-readable part, and data.
+  ///
+  /// Notes:
+  ///
+  /// 1. The human-readable part must be lowercase.
+  /// 2. The data should be 5-bit encoded.  In other words, only the
+  ///    lower 5 bits of each byte contain data.
+  ///
+  /// # Examples
+  ///
+  /// Create [Bech32][] checksum:
+  ///
+  /// ```
+  /// # fn main() -> Result<(), bech32::Err> {
+  /// use bech32::{bits::convert, checksum::make, Scheme};
+  ///
+  /// let exp = b"wunxjs"; // expected checksum
+  /// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
+  /// let got = make(Scheme::Bech32, "a", data); // make checksum
+  /// assert_eq!(&got, exp); // verify checksum
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
+  /// Create [Bech32m][] checksum:
+  ///
+  /// ```
+  /// # fn main() -> Result<(), bech32::Err> {
+  /// use bech32::{bits::convert, checksum::make, Scheme};
+  ///
+  /// let exp = b"mqr2hj"; // expected checksum
+  /// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
+  /// let got = make(Scheme::Bech32m, "a", data); // make checksum
+  /// assert_eq!(&got, exp); // verify checksum
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
+  /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "BIP173: Bech32"
+  /// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+  ///   "BIP350: Bech32m"
+  pub fn make<T: AsRef<[u8]>>(scheme: Scheme, hrp: &str, data: T) -> [u8; 6] {
     let mut sum: u32 = 1;
 
     sum = hrp.bytes().fold(sum, |r, b| polymod(r, b >> 5)); // absorb hrp high bits
     sum = polymod(sum, 0); // absorb 0
     sum = hrp.bytes().fold(sum, |r, b| polymod(r, b & 0x1f)); // absorb hrp low bits
-    sum = data.iter().fold(sum, |r, b| polymod(r, *b)); // absorb data
+    sum = data.as_ref().iter().fold(sum, |r, b| polymod(r, *b)); // absorb data
     sum = (0..6).fold(sum, |r, _| polymod(r, 0)); // absorb 6 zeros
 
     encode(sum ^ scheme.checksum_mask()) // mask, encode as [u8; 6]
