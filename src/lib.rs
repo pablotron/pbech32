@@ -18,13 +18,11 @@
 /// Error.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Err {
-  Len,
+  InvalidLen,
   InvalidChar,
   MixedCase,
   MissingSeparator,
   InvalidHrpLen,
-  TruncatedData,
-  InvalidChecksumLength,
   InvalidChecksum,
 }
 
@@ -198,7 +196,7 @@ impl RawBech32 {
   pub fn new(spec: Spec, s: &str) -> Result<Self, Err> {
     // check that string length is in the range 8..91
     if s.len() < 8 || s.len() > 90 {
-      return Err(Err::Len);
+      return Err(Err::InvalidLen);
     }
 
     // check for invalid chars
@@ -303,14 +301,16 @@ impl std::fmt::Display for Bech32 {
     // write hrp
     write!(f, "{}1", self.hrp)?;
 
+    let data = bits::convert::<8, 5>(&self.data.as_ref());
+
     // encode/write data
-    for b in bits::convert::<8, 5>(&self.data.as_ref()) {
-      write!(f, "{}", LUT[b as usize])?;
+    for b in &data {
+      write!(f, "{}", LUT[*b as usize])?;
     }
 
     // write checksum
     // note: unwrap() is safe here beca
-    let s = checksum::make(self.spec, &self.hrp, &self.data);
+    let s = checksum::make(self.spec, &self.hrp, &data);
     write!(f, "{}", str::from_utf8(&s).unwrap())?;
 
     Ok(())
@@ -440,6 +440,9 @@ mod tests {
         RawBech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
         "a12uel5l",
       ), (
+        RawBech32 { spec: Spec::Bech32m, hrp: "a".to_string(), data: vec![] },
+        "a1lqfn3a",
+      ), (
         RawBech32 {
           spec: Spec::Bech32,
           hrp: "bc".to_string(),
@@ -457,7 +460,7 @@ mod tests {
 
       for (val, exp) in tests {
         let got = val.to_string();
-        assert_eq!(got, exp);
+        assert_eq!(got, exp, "{exp}");
       }
     }
 
@@ -491,6 +494,49 @@ mod tests {
 
       for (s, exp) in tests {
         let got: RawBech32 = s.parse().expect(s);
+        assert_eq!(got, exp, "{s}: {got} != {exp}");
+      }
+    }
+  }
+
+  mod bech32 {
+    use super::super::*;
+
+    #[test]
+    fn test_to_str() {
+      let tests = vec![(
+        Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
+        "a12uel5l",
+      ), (
+        Bech32 { spec: Spec::Bech32m, hrp: "a".to_string(), data: vec![] },
+        "a1lqfn3a",
+      ), (
+        Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+        "a1qypqxpq9wunxjs",
+      ), (
+        Bech32 { spec: Spec::Bech32m, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+        "a1qypqxpq9mqr2hj",
+      )];
+
+      for (val, exp) in tests {
+        let got = val.to_string();
+        assert_eq!(got, exp, "{exp}");
+      }
+    }
+
+    #[test]
+    fn test_from_str() {
+      let tests = vec![(
+        "a12uel5l",
+        Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
+      ), (
+        "a1qypqxpq9wunxjs",
+        Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+      )];
+
+
+      for (s, exp) in tests {
+        let got: Bech32 = s.parse().expect(s);
         assert_eq!(got, exp, "{s}: {got} != {exp}");
       }
     }
