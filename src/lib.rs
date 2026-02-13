@@ -377,7 +377,7 @@ pub struct RawBech32 {
 impl RawBech32 {
   /// Parse string as bech32 string with format from given
   /// specification.
-  pub fn new(spec: Spec, s: &str) -> Result<Self, Err> {
+  pub fn new(s: &str, spec: Option<Spec>) -> Result<Self, Err> {
     // check that string length is in the range 8..256
     //
     // NOTE: BIP173 limits the maximum length to 90 characters rather
@@ -413,15 +413,26 @@ impl RawBech32 {
       data.push(chars::decode(c).ok_or(Err::InvalidChar)?);
     }
 
-    // calculate checksum of hrp and data, then verify that it matches
-    // the checksum at the end of the input string
-    let got_csum = checksum::make(spec, hrp, &data);
+    // get expected checksum from end of string
     let exp_csum = &s.as_bytes()[(s.len() - 6)..];
-    if got_csum != exp_csum {
-      return Err(Err::InvalidChecksum);
+
+    // get list of specs to try
+    let specs = match spec {
+      Some(spec) => vec![spec],
+      None => vec![Spec::Bech32m, Spec::Bech32],
+    };
+
+    for spec in specs {
+      // calculate checksum of hrp and data, then verify that it matches
+      // the expected checksum
+      if checksum::make(spec, hrp, &data) == exp_csum {
+        // checksum matches, return success
+        return Ok(Self { spec, data, hrp: hrp.to_string() });
+      }
     }
 
-    Ok(Self { spec, data, hrp: hrp.to_string() })
+    // checksum does not match, return error
+    Err(Err::InvalidChecksum)
   }
 }
 
@@ -429,7 +440,7 @@ impl std::str::FromStr for RawBech32 {
   type Err = Err;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    Self::new(Spec::Bech32, s)
+    Self::new(s, None)
   }
 }
 
@@ -468,8 +479,8 @@ pub struct Bech32 {
 impl Bech32 {
   /// Parse string as bech32 string with format from given
   /// specification.
-  pub fn new(spec: Spec, s: &str) -> Result<Self, Err> {
-    let r = RawBech32::new(spec, s)?;
+  pub fn new(s: &str, spec: Option<Spec>) -> Result<Self, Err> {
+    let r = RawBech32::new(s, spec)?;
     let data = bits::convert::<5, 8>(r.data.as_ref());
     Ok(Self { data, spec: r.spec, hrp: r.hrp.to_string() })
   }
@@ -479,7 +490,7 @@ impl std::str::FromStr for Bech32 {
   type Err = Err;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    Self::new(Spec::Bech32, s)
+    Self::new(s, None)
   }
 }
 
