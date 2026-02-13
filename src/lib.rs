@@ -344,6 +344,63 @@ mod chars {
   }
 }
 
+/// Data encoding/decoding functions.
+pub mod bits {
+  /// Get capacity needed for bit conversion.
+  fn capacity<
+    const SRC_BITS: usize, // input bit size (5 or 8)
+    const DST_BITS: usize, // output bit size (5 or 8)
+  >(len: usize) -> usize {
+    SRC_BITS * len / DST_BITS + match (SRC_BITS, DST_BITS, len % DST_BITS) {
+      (8, 5, 0) => 0,
+      (8, 5, 1) => 1,
+      (8, 5, 2) => 2,
+      (8, 5, 3) => 2,
+      (8, 5, 4) => 3,
+
+      (5, 8, 0) => 0,
+      (5, 8, 1) => 1,
+      (5, 8, 2) => 2,
+      (5, 8, 3) => 2,
+      (5, 8, 4) => 3,
+      (5, 8, 5) => 4,
+      (5, 8, 6) => 4,
+      (5, 8, 7) => 5,
+
+      _ => unreachable!(),
+    }
+  }
+
+  /// Encode packed data as 5-bit bytes.
+  pub fn convert<
+    const SRC_BITS: usize, // input bit size (5 or 8)
+    const DST_BITS: usize, // output bit size (5 or 8)
+  >(bytes: &[u8]) -> Vec<u8> {
+    let mask: u32 = (1 << (DST_BITS as u32)) - 1; // write mask
+    let mut r = Vec::with_capacity(capacity::<SRC_BITS, DST_BITS>(bytes.len()));
+    let mut acc: u32 = 0; // accumulator
+    let mut acc_len = 0; // accumulator bit count
+
+    for b in bytes {
+      acc = (acc << SRC_BITS) | (*b as u32); // accumulate
+      acc_len += SRC_BITS; // increase bit count
+      while acc_len >= DST_BITS {
+        acc_len -= DST_BITS; // reduce bit count
+        r.push(((acc >> acc_len) & mask) as u8); // write top bits
+        acc &= (1 << acc_len) - 1; // remove top bits
+      }
+    }
+
+    // flush bits
+    if acc_len > 0 {
+      acc <<= DST_BITS - acc_len; // pad with zeros
+      r.push((acc & mask) as u8); // write remaining bits
+    }
+
+    r
+  }
+}
+
 /// [BCH][] checksum functions.
 ///
 /// Notes:
@@ -467,63 +524,6 @@ pub mod checksum {
     sum = (0..6).fold(sum, |r, _| polymod(r, 0)); // absorb 6 zeros
 
     encode(sum ^ scheme.checksum_mask()) // mask, encode as [u8; 6]
-  }
-}
-
-/// Data encoding/decoding functions.
-pub mod bits {
-  /// Get capacity needed for bit conversion.
-  fn capacity<
-    const SRC_BITS: usize, // input bit size (5 or 8)
-    const DST_BITS: usize, // output bit size (5 or 8)
-  >(len: usize) -> usize {
-    SRC_BITS * len / DST_BITS + match (SRC_BITS, DST_BITS, len % DST_BITS) {
-      (8, 5, 0) => 0,
-      (8, 5, 1) => 1,
-      (8, 5, 2) => 2,
-      (8, 5, 3) => 2,
-      (8, 5, 4) => 3,
-
-      (5, 8, 0) => 0,
-      (5, 8, 1) => 1,
-      (5, 8, 2) => 2,
-      (5, 8, 3) => 2,
-      (5, 8, 4) => 3,
-      (5, 8, 5) => 4,
-      (5, 8, 6) => 4,
-      (5, 8, 7) => 5,
-
-      _ => unreachable!(),
-    }
-  }
-
-  /// Encode packed data as 5-bit bytes.
-  pub fn convert<
-    const SRC_BITS: usize, // input bit size (5 or 8)
-    const DST_BITS: usize, // output bit size (5 or 8)
-  >(bytes: &[u8]) -> Vec<u8> {
-    let mask: u32 = (1 << (DST_BITS as u32)) - 1; // write mask
-    let mut r = Vec::with_capacity(capacity::<SRC_BITS, DST_BITS>(bytes.len()));
-    let mut acc: u32 = 0; // accumulator
-    let mut acc_len = 0; // accumulator bit count
-
-    for b in bytes {
-      acc = (acc << SRC_BITS) | (*b as u32); // accumulate
-      acc_len += SRC_BITS; // increase bit count
-      while acc_len >= DST_BITS {
-        acc_len -= DST_BITS; // reduce bit count
-        r.push(((acc >> acc_len) & mask) as u8); // write top bits
-        acc &= (1 << acc_len) - 1; // remove top bits
-      }
-    }
-
-    // flush bits
-    if acc_len > 0 {
-      acc <<= DST_BITS - acc_len; // pad with zeros
-      r.push((acc & mask) as u8); // write remaining bits
-    }
-
-    r
   }
 }
 
