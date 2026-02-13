@@ -26,13 +26,13 @@ pub enum Err {
   InvalidChecksum,
 }
 
-/// Bec32 specification.
+/// Bech32 specification.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Spec {
-  /// Bech32 spec (BIP-173).
+  /// Bech32 spec (BIP173).
   Bech32,
 
-  /// Bech32m spec (BIP-350).
+  /// Bech32m spec (BIP350).
   Bech32m,
 }
 
@@ -131,8 +131,11 @@ pub mod checksum {
 
 /// Data encoding/decoding functions.
 pub mod bits {
-  /// Get capacity needed for conversion.
-  fn capacity<const SRC_BITS: usize, const DST_BITS: usize>(len: usize) -> usize {
+  /// Get capacity needed for bit conversion.
+  fn capacity<
+    const SRC_BITS: usize, // input bit size (5 or 8)
+    const DST_BITS: usize, // output bit size (5 or 8)
+  >(len: usize) -> usize {
     SRC_BITS * len / DST_BITS + match (SRC_BITS, DST_BITS, len % DST_BITS) {
       (8, 5, 0) => 0,
       (8, 5, 1) => 1,
@@ -154,26 +157,29 @@ pub mod bits {
   }
 
   /// Encode packed data as 5-bit bytes.
-  pub fn convert<const SRC_BITS: usize, const DST_BITS: usize>(bytes: &[u8]) -> Vec<u8> {
-    let mask: u32 = (1 << (DST_BITS as u32)) - 1;
+  pub fn convert<
+    const SRC_BITS: usize, // input bit size (5 or 8)
+    const DST_BITS: usize, // output bit size (5 or 8)
+  >(bytes: &[u8]) -> Vec<u8> {
+    let mask: u32 = (1 << (DST_BITS as u32)) - 1; // write mask
     let mut r = Vec::with_capacity(capacity::<SRC_BITS, DST_BITS>(bytes.len()));
-    let mut acc: u32 = 0;
-    let mut acc_len = 0;
+    let mut acc: u32 = 0; // accumulator
+    let mut acc_len = 0; // accumulator bit count
 
     for b in bytes {
-      acc = (acc << SRC_BITS) | (*b as u32);
-      acc_len += SRC_BITS;
+      acc = (acc << SRC_BITS) | (*b as u32); // accumulate
+      acc_len += SRC_BITS; // increase bit count
       while acc_len >= DST_BITS {
-        acc_len -= DST_BITS;
-        r.push(((acc >> acc_len) & mask) as u8);
-        acc &= (1 << acc_len) - 1;
+        acc_len -= DST_BITS; // reduce bit count
+        r.push(((acc >> acc_len) & mask) as u8); // write top bits
+        acc &= (1 << acc_len) - 1; // remove top bits
       }
     }
 
     // flush bits
     if acc_len > 0 {
-      acc <<= DST_BITS - acc_len;
-      r.push((acc & mask) as u8);
+      acc <<= DST_BITS - acc_len; // pad with zeros
+      r.push((acc & mask) as u8); // write remaining bits
     }
 
     r
@@ -268,7 +274,7 @@ impl std::fmt::Display for RawBech32 {
   }
 }
 
-/// Bech32 data.
+/// Parsed Bech32 data.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Bech32 {
   /// Bech32 specification.
@@ -555,7 +561,6 @@ mod tests {
         "a1qypqxpq9wunxjs",
         Bech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
       )];
-
 
       for (s, exp) in tests {
         let got: Bech32 = s.parse().expect(s);
