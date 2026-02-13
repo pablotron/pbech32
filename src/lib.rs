@@ -6,11 +6,17 @@
 //!   "BIP-173: Bech32"
 //! [bip350]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
 //!   "BIP-350: Bech32m"
+//! [ascii]: https://en.wikipedia.org/wiki/ASCII
+//!   "ASCII (Wikipedia)"
+
+#![deny(missing_docs)]
+#![deny(unsafe_code)]
 
 // ref: https://learnmeabitcoin.com/technical/keys/bech32/
 //
 // TODO:
 // [x] encode/decode data into 5-bit form
+// [ ] auto-detect spec
 // [ ] docs
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
@@ -482,7 +488,7 @@ impl std::fmt::Display for Bech32 {
     // write hrp
     write!(f, "{}1", self.hrp)?;
 
-    let data = bits::convert::<8, 5>(&self.data.as_ref());
+    let data = bits::convert::<8, 5>(self.data.as_ref());
 
     // encode/write data
     for b in &data {
