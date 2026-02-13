@@ -8,9 +8,9 @@
 //!   "BIP-350: Bech32m"
 
 // ref: https://learnmeabitcoin.com/technical/keys/bech32/
-// 
+//
 // TODO:
-// [ ] encode/decode data into 5-bit form
+// [x] encode/decode data into 5-bit form
 // [ ] docs
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
@@ -319,71 +319,6 @@ impl std::fmt::Display for Bech32 {
 
 #[cfg(test)]
 mod tests {
-  mod rawbech32 {
-    use super::super::*;
-
-    #[test]
-    fn test_to_str() {
-      let tests = vec![(
-        RawBech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
-        "a12uel5l",
-      ), (
-        RawBech32 {
-          spec: Spec::Bech32,
-          hrp: "bc".to_string(),
-          data: vec![
-            0b00000, 0b01000, 0b01000, 0b01101, 0b00111, 0b11001,
-            0b00110, 0b10001, 0b00000, 0b00001, 0b11111, 0b11100,
-            0b10010, 0b10100, 0b01110, 0b01001, 0b10111, 0b01011,
-            0b00010, 0b11001, 0b00000, 0b11010, 0b01100, 0b00001,
-            0b00111, 0b11110, 0b11100, 0b11110, 0b11100, 0b00110,
-            0b10000, 0b00001, 0b00110,
-          ],
-        },
-        "bc1qggd8ex3qpluj5wfhtzeq6vp87u7uxspxljx8se",
-      )];
-
-      for (val, exp) in tests {
-        let got = val.to_string();
-        assert_eq!(got, exp);
-      }
-    }
-
-    #[test]
-    fn test_from_str() {
-      let tests = vec![(
-        "a12uel5l",
-        RawBech32 {
-          spec: Spec::Bech32,
-          hrp: "a".to_string(),
-          data: vec![],
-        },
-      ), (
-        "A12UEL5L",
-        RawBech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
-      ), (
-        "bc1qggd8ex3qpluj5wfhtzeq6vp87u7uxspxljx8se",
-        RawBech32 {
-          spec: Spec::Bech32,
-          hrp: "bc".to_string(),
-          data: vec![
-            0b00000, 0b01000, 0b01000, 0b01101, 0b00111, 0b11001,
-            0b00110, 0b10001, 0b00000, 0b00001, 0b11111, 0b11100,
-            0b10010, 0b10100, 0b01110, 0b01001, 0b10111, 0b01011,
-            0b00010, 0b11001, 0b00000, 0b11010, 0b01100, 0b00001,
-            0b00111, 0b11110, 0b11100, 0b11110, 0b11100, 0b00110,
-            0b10000, 0b00001, 0b00110,
-          ]
-        },
-      )];
-
-      for (s, exp) in tests {
-        let got: RawBech32 = s.parse().expect(s);
-        assert_eq!(got, exp, "{s}: {got} != {exp}");
-      }
-    }
-  }
-
   mod bits {
     use super::super::bits;
 
@@ -492,6 +427,71 @@ mod tests {
       for (src, exp) in tests {
         let got = bits::convert::<5, 8>(src.as_ref());
         assert_eq!(got, exp);
+      }
+    }
+  }
+
+  mod rawbech32 {
+    use super::super::*;
+
+    #[test]
+    fn test_to_str() {
+      let tests = vec![(
+        RawBech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
+        "a12uel5l",
+      ), (
+        RawBech32 {
+          spec: Spec::Bech32,
+          hrp: "bc".to_string(),
+          data: vec![
+            0b00000, 0b01000, 0b01000, 0b01101, 0b00111, 0b11001,
+            0b00110, 0b10001, 0b00000, 0b00001, 0b11111, 0b11100,
+            0b10010, 0b10100, 0b01110, 0b01001, 0b10111, 0b01011,
+            0b00010, 0b11001, 0b00000, 0b11010, 0b01100, 0b00001,
+            0b00111, 0b11110, 0b11100, 0b11110, 0b11100, 0b00110,
+            0b10000, 0b00001, 0b00110,
+          ],
+        },
+        "bc1qggd8ex3qpluj5wfhtzeq6vp87u7uxspxljx8se",
+      )];
+
+      for (val, exp) in tests {
+        let got = val.to_string();
+        assert_eq!(got, exp);
+      }
+    }
+
+    #[test]
+    fn test_from_str() {
+      let tests = vec![(
+        "a12uel5l",
+        RawBech32 {
+          spec: Spec::Bech32,
+          hrp: "a".to_string(),
+          data: vec![],
+        },
+      ), (
+        "A12UEL5L",
+        RawBech32 { spec: Spec::Bech32, hrp: "a".to_string(), data: vec![] },
+      ), (
+        "bc1qggd8ex3qpluj5wfhtzeq6vp87u7uxspxljx8se",
+        RawBech32 {
+          spec: Spec::Bech32,
+          hrp: "bc".to_string(),
+          data: vec![
+            0b00000, 0b01000, 0b01000, 0b01101, 0b00111, 0b11001,
+            0b00110, 0b10001, 0b00000, 0b00001, 0b11111, 0b11100,
+            0b10010, 0b10100, 0b01110, 0b01001, 0b10111, 0b01011,
+            0b00010, 0b11001, 0b00000, 0b11010, 0b01100, 0b00001,
+            0b00111, 0b11110, 0b11100, 0b11110, 0b11100, 0b00110,
+            0b10000, 0b00001, 0b00110,
+          ]
+        },
+      )];
+
+      for (s, exp) in tests {
+        let got: RawBech32 = s.parse().expect(s);
+        assert_eq!(got, exp, "{s}: {got} != {exp}");
       }
     }
   }
