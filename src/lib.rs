@@ -344,7 +344,33 @@ mod chars {
   }
 }
 
-/// Data encoding/decoding functions.
+/// 5-bit to 8-bit data conversion functions.
+///
+/// # Examples
+///
+/// Encode 8-bit data as vector of 5-bit bytes:
+///
+/// ```
+/// # fn main() {
+/// use bech32::bits::convert;
+///
+/// let exp = vec![0, 4, 1, 0, 6, 1, 0, 5]; // expected 5-bit result
+/// let got = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode 8-bit data
+/// assert_eq!(got, exp); // check 5-bit result
+/// # }
+/// ```
+///
+/// Decode 5-bit data as vector of 8-bit bytes:
+///
+/// ```
+/// # fn main() {
+/// use bech32::bits::convert;
+///
+/// let exp = vec![1, 2, 3, 4, 5]; // expected 8-bit result
+/// let got = convert::<5, 8>(&[0, 4, 1, 0, 6, 1, 0, 5]); // decode 5-bit data
+/// assert_eq!(got, exp); // check 8-bit result
+/// # }
+/// ```
 pub mod bits {
   /// Get capacity needed for bit conversion.
   fn capacity<
@@ -371,7 +397,33 @@ pub mod bits {
     }
   }
 
-  /// Encode packed data as 5-bit bytes.
+  /// Convert between 5-bit and 8-bit data.
+  ///
+  /// # Examples
+  ///
+  /// Encode 8-bit data as vector of 5-bit bytes:
+  ///
+  /// ```
+  /// # fn main() {
+  /// use bech32::bits::convert;
+  ///
+  /// let exp = vec![0, 4, 1, 0, 6, 1, 0, 5]; // expected 5-bit result
+  /// let got = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode 8-bit data
+  /// assert_eq!(got, exp); // check 5-bit result
+  /// # }
+  /// ```
+  ///
+  /// Decode 5-bit data as vector of 8-bit bytes:
+  ///
+  /// ```
+  /// # fn main() {
+  /// use bech32::bits::convert;
+  ///
+  /// let exp = vec![1, 2, 3, 4, 5]; // expected 8-bit result
+  /// let got = convert::<5, 8>(&[0, 4, 1, 0, 6, 1, 0, 5]); // decode 5-bit data
+  /// assert_eq!(got, exp); // check 8-bit result
+  /// # }
+  /// ```
   pub fn convert<
     const SRC_BITS: usize, // input bit size (5 or 8)
     const DST_BITS: usize, // output bit size (5 or 8)
