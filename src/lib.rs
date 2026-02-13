@@ -1,11 +1,11 @@
 //! [Bech32][] parsing and encoding library.
 //!
 //! [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-//!   "BIP-173: Bech32"
+//!   "Bech32 (BIP173)"
 //! [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-//!   "BIP-173: Bech32"
+//!   "Bech32 (BIP173)"
 //! [bip350]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
-//!   "BIP-350: Bech32m"
+//!   "Bech32m (BIP350)"
 //! [ascii]: https://en.wikipedia.org/wiki/ASCII
 //!   "ASCII (Wikipedia)"
 
@@ -46,7 +46,7 @@
 /// ```
 ///
 /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-///   "BIP-173: Bech32"
+///   "Bech32 (BIP173)"
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Err {
   /// Invalid string length.
@@ -80,9 +80,9 @@ pub enum Err {
   /// ```
   ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-  ///   "BIP173: Bech32"
+  ///   "Bech32 (BIP173)"
   /// [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-  ///   "BIP-173: Bech32"
+  ///   "Bech32 (BIP173)"
   InvalidLen,
 
   /// String contains an invalid character.
@@ -104,7 +104,7 @@ pub enum Err {
   /// [ascii]: https://en.wikipedia.org/wiki/ASCII
   ///   "ASCII (Wikipedia)"
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-  ///   "BIP173: Bech32"
+  ///   "Bech32 (BIP173)"
   InvalidChar,
 
   /// String contains mixed uppercase and lowercase characters.
@@ -126,7 +126,7 @@ pub enum Err {
   /// ```
   ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-  ///   "BIP173: Bech32"
+  ///   "Bech32 (BIP173)"
   MixedCase,
 
   /// String is missing a separator character.
@@ -148,7 +148,7 @@ pub enum Err {
   /// ```
   ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-  ///   "BIP173: Bech32"
+  ///   "Bech32 (BIP173)"
   MissingSeparator,
 
   /// Length of Human-readable part (HRP) of string is invalid.
@@ -179,7 +179,7 @@ pub enum Err {
   /// ```
   ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-  ///   "BIP173: Bech32"
+  ///   "Bech32 (BIP173)"
   InvalidHrpLen,
 
   /// Invalid checksum.
@@ -197,7 +197,7 @@ pub enum Err {
   /// ```
   ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-  ///   "BIP173: Bech32"
+  ///   "Bech32 (BIP173)"
   InvalidChecksum,
 }
 
@@ -232,11 +232,11 @@ pub enum Err {
 /// ```
 ///
 /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-///   "BIP-173: Bech32"
+///   "Bech32 (BIP173)"
 /// [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-///   "BIP173: Bech32"
+///   "Bech32 (BIP173)"
 /// [bip350]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
-///   "BIP350: Bech32m"
+///   "Bech32m (BIP350)"
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Scheme {
   /// [Bech32][bip173] variant, as specified in [BIP173][].
@@ -256,7 +256,7 @@ pub enum Scheme {
   /// ```
   ///
   /// [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-  ///   "BIP173: Bech32"
+  ///   "Bech32 (BIP173)"
   Bech32,
 
   /// [Bech32m][bip350] variant, as specified in [BIP350][].
@@ -276,7 +276,7 @@ pub enum Scheme {
   /// ```
   ///
   /// [bip350]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
-  ///   "BIP350: Bech32m"
+  ///   "Bech32m (BIP350)"
   Bech32m,
 }
 
@@ -304,7 +304,7 @@ mod chars {
   /// character is not a valid Bech32 character.
   ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-  ///   "BIP-173: Bech32"
+  ///   "Bech32 (BIP173)"
   pub(crate) fn decode(c: char) -> Option<u8> {
     match c {
       'q' => Some(0),
@@ -494,9 +494,9 @@ pub mod bits {
 /// [bch]: https://en.wikipedia.org/wiki/BCH_code
 ///   "BCH code (Wikipedia)"
 /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-///   "BIP173: Bech32"
+///   "Bech32 (BIP173)"
 /// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
-///   "BIP350: Bech32m"
+///   "Bech32m (BIP350)"
 pub mod checksum {
   use super::{chars, Scheme};
 
@@ -563,9 +563,9 @@ pub mod checksum {
   /// ```
   ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-  ///   "BIP173: Bech32"
+  ///   "Bech32 (BIP173)"
   /// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
-  ///   "BIP350: Bech32m"
+  ///   "Bech32m (BIP350)"
   pub fn make<T: AsRef<[u8]>>(scheme: Scheme, hrp: &str, data: T) -> [u8; 6] {
     let mut sum: u32 = 1;
 
@@ -579,16 +579,91 @@ pub mod checksum {
   }
 }
 
-/// Raw bech32 data.
+/// Parsed [Bech32][] structure with 5-bit `data` field.
+///
+/// Use [`Bech32`] structure instead to automatically encode and decode
+/// 8-bit data.
+///
+/// # Examples
+///
+/// Parse [Bech32m][] string:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::{RawBech32, Scheme};
+///
+/// // expected result
+/// let exp = RawBech32 {
+///   scheme: Scheme::Bech32m,
+///   hrp: "a".to_string(),
+///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+/// };
+///
+/// let s = "a1qypqxpq9mqr2hj"; // bech32m string
+/// let got: RawBech32 = s.parse()?; // parse string
+/// assert_eq!(got, exp); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Convert [`RawBech32`] to string:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::{RawBech32, Scheme};
+///
+/// // expected result
+/// let exp = "a1qypqxpq9mqr2hj";
+///
+/// // populate structure
+/// let b = RawBech32 {
+///   scheme: Scheme::Bech32m,
+///   hrp: "a".to_string(),
+///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+/// };
+///
+/// let got = b.to_string(); // convert to string
+/// assert_eq!(got, exp); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Use [`RawBech32::new()`] to parse a specific scheme:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::{RawBech32, Scheme};
+///
+/// // expected result
+/// let exp = RawBech32 {
+///   scheme: Scheme::Bech32m,
+///   hrp: "a".to_string(),
+///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+/// };
+///
+/// let s = "a1qypqxpq9mqr2hj"; // bech32m string
+/// let got = RawBech32::new(s, Some(Scheme::Bech32m))?; // parse string
+/// assert_eq!(got, exp); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+///   "Bech32 (BIP173)"
+/// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+///   "Bech32m (BIP350)"
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RawBech32 {
-  /// Bech32 scheme.
+  /// Checksum scheme
   pub scheme: Scheme,
 
-  /// Human-readable part.
-  pub hrp: String, // TODO: &'a str
+  /// Human-readable part
+  pub hrp: String,
 
-  /// Packed data.
+  /// Raw 5-bit data
+  ///
+  /// **Note:** Use [`bits::convert()`] to decode the 5-bit data
+  /// in this field.
   pub data: Vec<u8>,
 }
 
