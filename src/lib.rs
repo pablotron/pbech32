@@ -18,11 +18,115 @@
 /// Error.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Err {
+  /// Invalid string length.
+  ///
+  /// The length of a [Bech32][] string must be in the range `8..91`.
+  ///
+  /// # Example
+  ///
+  /// ```
+  /// # fn main() {
+  /// use bech32::{Bech32, Err};
+  /// let s = ""; // empty string
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
+  /// # }
+  /// ```
+  ///
+  /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "BIP173: Bech32"
   InvalidLen,
+
+  /// String contains an invalid character.
+  ///
+  /// A [Bech32][] string must only contain alphanumeric [ASCII][] characters.
+  ///
+  /// # Example
+  ///
+  /// ```
+  /// # fn main() {
+  /// use bech32::{Bech32, Err};
+  /// let s = "a 1xxxxxx"; // string with invalid bech32 character
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChar));
+  /// # }
+  /// ```
+  ///
+  /// [ascii]: https://en.wikipedia.org/wiki/ASCII
+  ///   "ASCII (Wikipedia)"
+  /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "BIP173: Bech32"
   InvalidChar,
+
+  /// String contains mixed uppercase and lowercase characters.
+  ///
+  /// A [Bech32][] string must not contain both uppercase and lowercase
+  /// characters.
+  ///
+  /// # Example
+  ///
+  /// ```
+  /// # fn main() {
+  /// use bech32::{Bech32, Err};
+  /// let s = "Ab1xxxxxx"; // mixed-case string
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::MixedCase));
+  /// # }
+  /// ```
+  ///
+  /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "BIP173: Bech32"
   MixedCase,
+
+  /// String is missing a separator character.
+  ///
+  /// A [Bech32][] string must contain a `1` character between the
+  /// the human-readable part and the data part.
+  ///
+  /// # Example
+  ///
+  /// ```
+  /// # fn main() {
+  /// use bech32::{Bech32, Err};
+  /// let s = "avxxxxxx"; // string w/o separator
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::MissingSeparator));
+  /// # }
+  /// ```
+  ///
+  /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "BIP173: Bech32"
   MissingSeparator,
+
+  /// Length of Human-readable part (HRP) of string is invalid.
+  ///
+  /// The length of the human-readable part of a [Bech32][] string must
+  /// be in the range `[1..84]`.
+  ///
+  /// # Example
+  ///
+  /// ```
+  /// # fn main() {
+  /// use bech32::{Bech32, Err};
+  /// let s = "1axxxxxx"; // string with empty human-readable part
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidHrpLen));
+  /// # }
+  /// ```
+  ///
+  /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "BIP173: Bech32"
   InvalidHrpLen,
+
+  /// Invalid checksum.
+  ///
+  /// # Example
+  ///
+  /// ```
+  /// # fn main() {
+  /// use bech32::{Bech32, Err};
+  /// let s = "a1xxxxxx"; // string with invalid checksum
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChecksum));
+  /// # }
+  /// ```
+  ///
+  /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "BIP173: Bech32"
   InvalidChecksum,
 }
 
