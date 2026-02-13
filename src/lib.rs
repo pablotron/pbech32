@@ -203,7 +203,8 @@ pub enum Err {
 
 /// [Bech32][] variant.
 ///
-/// TODO
+/// [Bech32m][bip350] is identical to [Bech32][bip173] except that it
+/// uses a different mask in the final step of the checksum calculation.
 ///
 /// # Examples
 ///
@@ -656,10 +657,15 @@ pub mod checksum {
 ///   "Bech32m (BIP350)"
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RawBech32 {
-  /// Checksum scheme
+  /// Scheme
+  ///
+  /// Affects checksum encoding.
   pub scheme: Scheme,
 
   /// Human-readable part
+  ///
+  /// Human-readable string prefix containing alphanumeric ASCII
+  /// characters.
   pub hrp: String,
 
   /// Raw 5-bit data
@@ -832,22 +838,171 @@ impl std::fmt::Display for RawBech32 {
   }
 }
 
-/// Parsed Bech32 data.
+/// Parsed [Bech32][] structure.
+///
+/// Use [`RawBech32`] and [`bits::convert()`] instead to handle
+/// data encoding and decoding manually.
+///
+/// # Examples
+///
+/// Parse [Bech32m][] string:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::{Bech32, Scheme};
+///
+/// // expected result
+/// let exp = Bech32 {
+///   scheme: Scheme::Bech32m,
+///   hrp: "a".to_string(),
+///   data: vec![1, 2, 3, 4, 5],
+/// };
+///
+/// let s = "a1qypqxpq9mqr2hj"; // bech32m string
+/// let got: Bech32 = s.parse()?; // parse string
+/// assert_eq!(got, exp); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Convert [`Bech32`] to string:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::{bits::convert, Bech32, Scheme};
+///
+/// let exp = "a1qypqxpq9mqr2hj"; // expected result
+///
+/// // populate structure
+/// let b = Bech32 {
+///   scheme: Scheme::Bech32m,
+///   hrp: "a".to_string(),
+///   data: vec![1, 2, 3, 4, 5],
+/// };
+///
+/// let got = b.to_string(); // convert to string
+/// assert_eq!(got, exp); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Use [`Bech32::new()`] to parse a specific scheme:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::{Bech32, Scheme};
+///
+/// // expected result
+/// let exp = Bech32 {
+///   scheme: Scheme::Bech32m,
+///   hrp: "a".to_string(),
+///   data: vec![1, 2, 3, 4, 5],
+/// };
+///
+/// let s = "a1qypqxpq9mqr2hj"; // bech32m string
+/// let got = Bech32::new(s, Some(Scheme::Bech32m))?; // parse string
+/// assert_eq!(got, exp); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+///   "Bech32 (BIP173)"
+/// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+///   "Bech32m (BIP350)"
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Bech32 {
-  /// Bech32 scheme
+  /// Scheme
+  ///
+  /// Affects checksum encoding.
   pub scheme: Scheme,
 
-  /// Human-readable part.
-  pub hrp: String, // TODO: &'a str
+  /// Human-readable part
+  ///
+  /// Human-readable string prefix containing alphanumeric ASCII
+  /// characters.
+  pub hrp: String,
 
-  /// Packed data.
+  /// 8-bit data
   pub data: Vec<u8>,
 }
 
 impl Bech32 {
-  /// Parse string as bech32 string with given scheme.
-  /// specification.
+  /// Parse string as [`Bech32`][] with given scheme.
+  ///
+  /// The difference between this function and [`str::parse()`] is that
+  /// this function allows you to limit parsing to a particular scheme.
+  ///
+  /// Setting the `scheme` parameter to [`None`] enables scheme
+  /// auto-detection and is equivalent to calling [`str::parse()`].
+  ///
+  /// # Example
+  ///
+  /// Parse string using [`Scheme::Bech32m`]:
+  ///
+  /// ```
+  /// # fn main() -> Result<(), bech32::Err> {
+  /// use bech32::{Bech32, Scheme};
+  ///
+  /// // expected result
+  /// let exp = Bech32 {
+  ///   scheme: Scheme::Bech32m,
+  ///   hrp: "a".to_string(),
+  ///   data: vec![1, 2, 3, 4, 5],
+  /// };
+  ///
+  /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
+  /// let got = Bech32::new(s, Some(Scheme::Bech32m))?; // parse string
+  /// assert_eq!(got, exp); // check result
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
+  /// Parse string using [`Scheme::Bech32`]:
+  ///
+  /// ```
+  /// # fn main() -> Result<(), bech32::Err> {
+  /// use bech32::{Bech32, Scheme};
+  ///
+  /// // expected result
+  /// let exp = Bech32 {
+  ///   scheme: Scheme::Bech32,
+  ///   hrp: "a".to_string(),
+  ///   data: vec![1, 2, 3, 4, 5],
+  /// };
+  ///
+  /// let s = "a1qypqxpq9wunxjs"; // bech32m string
+  /// let got = Bech32::new(s, Some(Scheme::Bech32))?; // parse string
+  /// assert_eq!(got, exp); // check result
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
+  /// Parse string using scheme auto-detection (equivalent to calling
+  /// [`str::parse()`]):
+  ///
+  /// ```
+  /// # fn main() -> Result<(), bech32::Err> {
+  /// use bech32::{Bech32, Scheme};
+  ///
+  /// // expected result
+  /// let exp = Bech32 {
+  ///   scheme: Scheme::Bech32m,
+  ///   hrp: "a".to_string(),
+  ///   data: vec![1, 2, 3, 4, 5],
+  /// };
+  ///
+  /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
+  /// let got = Bech32::new(s, None)?; // parse string
+  /// assert_eq!(got, exp); // check result
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
+  /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "Bech32 (BIP173)"
+  /// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+  ///   "Bech32m (BIP350)"
   pub fn new(s: &str, scheme: Option<Scheme>) -> Result<Self, Err> {
     let r = RawBech32::new(s, scheme)?;
     let data = bits::convert::<5, 8>(r.data.as_ref());
@@ -868,6 +1023,7 @@ impl std::fmt::Display for Bech32 {
     // write hrp
     write!(f, "{}1", self.hrp)?;
 
+    // convert data from 8-bit to 5-bit.
     let data = bits::convert::<8, 5>(self.data.as_ref());
 
     // encode/write data
