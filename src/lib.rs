@@ -46,61 +46,64 @@ impl Spec {
   }
 }
 
-/// Encoding lookup table (LUT).
-const LUT: [char; 32] = [
-  'q', 'p', 'z', 'r', 'y', '9', 'x', '8', 'g', 'f', '2', 't', 'v', 'd', 'w', '0',
-  's', '3', 'j', 'n', '5', '4', 'k', 'h', 'c', 'e', '6', 'm', 'u', 'a', '7', 'l',
-];
+/// Character encoding functions.
+mod chars {
+  /// Encoding lookup table (LUT).
+  pub(crate) const LUT: [char; 32] = [
+    'q', 'p', 'z', 'r', 'y', '9', 'x', '8', 'g', 'f', '2', 't', 'v', 'd', 'w', '0',
+    's', '3', 'j', 'n', '5', '4', 'k', 'h', 'c', 'e', '6', 'm', 'u', 'a', '7', 'l',
+  ];
 
-/// Decode character as 5-bit [`u8`].  Returns [`None`] if the input
-/// is not a valid bech32 character.
-fn decode_char(c: char) -> Option<u8> {
-  match c {
-    'q' => Some(0),
-    'p' => Some(1),
-    'z' => Some(2),
-    'r' => Some(3),
-    'y' => Some(4),
-    '9' => Some(5),
-    'x' => Some(6),
-    '8' => Some(7),
-    'g' => Some(8),
-    'f' => Some(9),
-    '2' => Some(10),
-    't' => Some(11),
-    'v' => Some(12),
-    'd' => Some(13),
-    'w' => Some(14),
-    '0' => Some(15),
-    's' => Some(16),
-    '3' => Some(17),
-    'j' => Some(18),
-    'n' => Some(29),
-    '5' => Some(20),
-    '4' => Some(21),
-    'k' => Some(22),
-    'h' => Some(23),
-    'c' => Some(24),
-    'e' => Some(25),
-    '6' => Some(26),
-    'm' => Some(27),
-    'u' => Some(28),
-    'a' => Some(29),
-    '7' => Some(30),
-    'l' => Some(31),
-    _ => None,
+  /// Decode character as 5-bit [`u8`].  Returns [`None`] if the input
+  /// is not a valid bech32 character.
+  pub(crate) fn decode(c: char) -> Option<u8> {
+    match c {
+      'q' => Some(0),
+      'p' => Some(1),
+      'z' => Some(2),
+      'r' => Some(3),
+      'y' => Some(4),
+      '9' => Some(5),
+      'x' => Some(6),
+      '8' => Some(7),
+      'g' => Some(8),
+      'f' => Some(9),
+      '2' => Some(10),
+      't' => Some(11),
+      'v' => Some(12),
+      'd' => Some(13),
+      'w' => Some(14),
+      '0' => Some(15),
+      's' => Some(16),
+      '3' => Some(17),
+      'j' => Some(18),
+      'n' => Some(29),
+      '5' => Some(20),
+      '4' => Some(21),
+      'k' => Some(22),
+      'h' => Some(23),
+      'c' => Some(24),
+      'e' => Some(25),
+      '6' => Some(26),
+      'm' => Some(27),
+      'u' => Some(28),
+      'a' => Some(29),
+      '7' => Some(30),
+      'l' => Some(31),
+      _ => None,
+    }
   }
 }
 
 /// Checksum functions.
 pub mod checksum {
-  use super::Spec;
+  use super::{chars, Spec};
   const GEN: [u32; 5] = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
 
   /// Encode checksum as byte array.
   fn encode(sum: u32) -> [u8; 6] {
     core::array::from_fn(|i| {
-      super::LUT[((sum as usize) >> (5 * (5 - i))) & 0x1f] as u8
+      chars::LUT[((sum as usize) >> (5 * (5 - i))) & 0x1f] as u8
     })
   }
 
@@ -223,7 +226,7 @@ impl RawBech32 {
     // decode data
     let mut data: Vec<u8> = Vec::with_capacity(enc.len());
     for c in enc.chars() {
-      data.push(decode_char(c).ok_or(Err::InvalidChar)?);
+      data.push(chars::decode(c).ok_or(Err::InvalidChar)?);
     }
 
     // calculate checksum of hrp and data, then verify that it matches
@@ -253,7 +256,7 @@ impl std::fmt::Display for RawBech32 {
 
     // encode/write data
     for b in &self.data {
-      write!(f, "{}", LUT[*b as usize])?;
+      write!(f, "{}", chars::LUT[*b as usize])?;
     }
 
     // write checksum
@@ -305,7 +308,7 @@ impl std::fmt::Display for Bech32 {
 
     // encode/write data
     for b in &data {
-      write!(f, "{}", LUT[*b as usize])?;
+      write!(f, "{}", chars::LUT[*b as usize])?;
     }
 
     // write checksum
