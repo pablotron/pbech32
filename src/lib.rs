@@ -322,6 +322,25 @@ impl std::fmt::Display for Bech32 {
 
 #[cfg(test)]
 mod tests {
+  mod chars {
+    use super::super::chars;
+
+    #[test]
+    fn test_decode() {
+      let tests = vec![
+        ('p', Some(1)),
+        ('r', Some(3)),
+        ('9', Some(5)),
+        ('8', Some(7)),
+        ('f', Some(9)),
+        ('1', None),
+      ];
+
+      for (c, exp) in tests {
+        assert_eq!(chars::decode(c), exp, "{c}");
+      }
+    }
+  }
   mod bits {
     use super::super::bits;
 
