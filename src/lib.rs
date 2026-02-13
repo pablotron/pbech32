@@ -579,9 +579,9 @@ pub mod checksum {
   }
 }
 
-/// Parsed [Bech32][] structure with 5-bit `data` field.
+/// Parsed [Bech32][] structure with raw 5-bit `data` field.
 ///
-/// Use [`Bech32`] structure instead to automatically encode and decode
+/// Use the [`Bech32`] type instead to automatically encode and decode
 /// 8-bit data.
 ///
 /// # Examples
@@ -610,16 +610,18 @@ pub mod checksum {
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{RawBech32, Scheme};
+/// use bech32::{bits::convert, RawBech32, Scheme};
 ///
-/// // expected result
-/// let exp = "a1qypqxpq9mqr2hj";
+/// let exp = "a1qypqxpq9mqr2hj"; // expected result
+///
+/// // encode 8-bit bytes as vector of 5-bit bytes
+/// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]);
 ///
 /// // populate structure
 /// let b = RawBech32 {
 ///   scheme: Scheme::Bech32m,
 ///   hrp: "a".to_string(),
-///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+///   data: data,
 /// };
 ///
 /// let got = b.to_string(); // convert to string
@@ -668,7 +670,40 @@ pub struct RawBech32 {
 }
 
 impl RawBech32 {
-  /// Parse string as bech32 string using given scheme.
+  /// Parse string as [`RawBech32`][] with given scheme.
+  ///
+  /// The difference between this function and [`str::parse()`] is that
+  /// this function allows you to limit parsing to a particular scheme.
+  ///
+  /// Setting the `scheme` parameter to [`None`] enables scheme
+  /// auto-detection and is equivalent to calling [`str::parse()`].
+  ///
+  /// # Example
+  ///
+  /// Parse string using [`Scheme::Bech32m`]:
+  ///
+  /// ```
+  /// # fn main() -> Result<(), bech32::Err> {
+  /// use bech32::{RawBech32, Scheme};
+  ///
+  /// // expected result
+  /// let exp = RawBech32 {
+  ///   scheme: Scheme::Bech32m,
+  ///   hrp: "a".to_string(),
+  ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+  /// };
+  ///
+  /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
+  /// let got = RawBech32::new(s, Some(Scheme::Bech32m))?; // parse string
+  /// assert_eq!(got, exp); // check result
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
+  /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+  ///   "Bech32 (BIP173)"
+  /// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
+  ///   "Bech32m (BIP350)"
   pub fn new(s: &str, scheme: Option<Scheme>) -> Result<Self, Err> {
     // check that string length is in the range 8..256
     //
