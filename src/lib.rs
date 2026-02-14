@@ -21,7 +21,7 @@
 //! // expected result
 //! let exp = Bech32 {
 //!   scheme: Scheme::Bech32m,
-//!   hrp: "a".to_string(),
+//!   hrp: "a".parse()?,
 //!   data: vec![1, 2, 3, 4, 5],
 //! };
 //!
@@ -43,7 +43,7 @@
 //! // populate structure
 //! let b = Bech32 {
 //!   scheme: Scheme::Bech32m,
-//!   hrp: "a".to_string(),
+//!   hrp: "a".parse()?,
 //!   data: vec![1, 2, 3, 4, 5],
 //! };
 //!
@@ -512,11 +512,8 @@ pub mod bits {
 
 /// [BCH][] checksum functions.
 ///
-/// Notes:
-///
-/// 1. The human-readable part must be lowercase.
-/// 2. The data should be 5-bit encoded.  In other words, only the
-///    lower 5 bits of each byte contain data.
+/// **Note:** The data should be 5-bit encoded.  In other words, only
+/// the lower 5 bits of each byte contain data.
 ///
 /// # Examples
 ///
@@ -524,11 +521,12 @@ pub mod bits {
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{bits::convert, checksum::make, Scheme};
+/// use bech32::{bits::convert, checksum::make, Hrp, Scheme};
 ///
 /// let exp = b"wunxjs"; // expected checksum
+/// let hrp: Hrp = "a".parse()?; // parse HRP
 /// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
-/// let got = make(Scheme::Bech32, "a", data); // make checksum
+/// let got = make(Scheme::Bech32, &hrp, data); // make checksum
 /// assert_eq!(&got, exp); // verify checksum
 /// # Ok(())
 /// # }
@@ -538,11 +536,12 @@ pub mod bits {
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{bits::convert, checksum::make, Scheme};
+/// use bech32::{bits::convert, checksum::make, Hrp, Scheme};
 ///
 /// let exp = b"mqr2hj"; // expected checksum
+/// let hrp: Hrp = "a".parse()?; // parse HRP
 /// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
-/// let got = make(Scheme::Bech32m, "a", data); // make checksum
+/// let got = make(Scheme::Bech32m, &hrp, data); // make checksum
 /// assert_eq!(&got, exp); // verify checksum
 /// # Ok(())
 /// # }
@@ -555,7 +554,7 @@ pub mod bits {
 /// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
 ///   "Bech32m (BIP350)"
 pub mod checksum {
-  use super::{chars, Scheme};
+  use super::{chars, Hrp, Scheme};
 
   /// Generator polynomials.
   ///
@@ -598,8 +597,9 @@ pub mod checksum {
   /// use bech32::{bits::convert, checksum::make, Scheme};
   ///
   /// let exp = b"wunxjs"; // expected checksum
+  /// let hrp = "a".parse()?; // parse hrp
   /// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
-  /// let got = make(Scheme::Bech32, "a", data); // make checksum
+  /// let got = make(Scheme::Bech32, &hrp, data); // make checksum
   /// assert_eq!(&got, exp); // verify checksum
   /// # Ok(())
   /// # }
@@ -612,8 +612,9 @@ pub mod checksum {
   /// use bech32::{bits::convert, checksum::make, Scheme};
   ///
   /// let exp = b"mqr2hj"; // expected checksum
+  /// let hrp = "a".parse()?; // parse hrp
   /// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
-  /// let got = make(Scheme::Bech32m, "a", data); // make checksum
+  /// let got = make(Scheme::Bech32m, &hrp, data); // make checksum
   /// assert_eq!(&got, exp); // verify checksum
   /// # Ok(())
   /// # }
@@ -623,16 +624,111 @@ pub mod checksum {
   ///   "Bech32 (BIP173)"
   /// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
   ///   "Bech32m (BIP350)"
-  pub fn make<T: AsRef<[u8]>>(scheme: Scheme, hrp: &str, data: T) -> [u8; 6] {
+  pub fn make<T: AsRef<[u8]>>(scheme: Scheme, hrp: &Hrp, data: T) -> [u8; 6] {
     let mut sum: u32 = 1;
 
-    sum = hrp.bytes().fold(sum, |r, b| polymod(r, b >> 5)); // absorb hrp high bits
+    sum = hrp.0.bytes().fold(sum, |r, b| polymod(r, b >> 5)); // absorb hrp high bits
     sum = polymod(sum, 0); // absorb 0
-    sum = hrp.bytes().fold(sum, |r, b| polymod(r, b & 0x1f)); // absorb hrp low bits
+    sum = hrp.0.bytes().fold(sum, |r, b| polymod(r, b & 0x1f)); // absorb hrp low bits
     sum = data.as_ref().iter().fold(sum, |r, b| polymod(r, *b)); // absorb data
     sum = (0..6).fold(sum, |r, _| polymod(r, 0)); // absorb 6 zeros
 
     encode(sum ^ scheme.checksum_mask()) // mask, encode as [u8; 6]
+  }
+}
+
+/// Human-readable part (HRP) of [Bech32][] structure.
+///
+/// **Note:** Always stored internally as lowercase.
+///
+/// # Examples
+///
+/// Parse string as [`Hrp`]:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::Hrp;
+///
+/// let s = "testhrp"; // hrp string
+/// let hrp: Hrp = s.parse()?; // parse string
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Convert [`Hrp`] to string:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::Hrp;
+///
+/// let hrp: Hrp = "foobar".parse()?; // parse hrp
+/// assert_eq!(hrp.to_string(), "foobar"); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Strings which contain all uppercase characters are converted to
+/// lowercase when parsed as an [`Hrp`]:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::Hrp;
+///
+/// let hrp: Hrp = "TESTHRP".parse()?; // parse string
+/// assert_eq!(hrp.to_string(), "testhrp"); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Parsing will fail if the given string is not a valid human-readable
+/// part. For example, here is a mixed-case string:
+///
+/// ```
+/// # fn main() {
+/// use bech32::{Err, Hrp};
+///
+/// let s = "FOObar"; // mixed-case string
+/// let got = s.parse::<Hrp>(); // parse hrp string
+/// assert_eq!(got, Err(Err::MixedCase));
+/// # }
+/// ```
+///
+/// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+///   "Bech32 (BIP173)"
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Hrp(pub String);
+
+impl std::str::FromStr for Hrp {
+  type Err = Err;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    // check string length
+    if !(1..84).contains(&s.len()) {
+      return Err(Err::InvalidHrpLen);
+    }
+
+    // check for invalid chars
+    if !s.chars().all(|c| c.is_ascii_alphanumeric()) {
+      return Err(Err::InvalidChar);
+    }
+
+    // check for mixed case
+    let has_lower = s.chars().any(|c| c.is_ascii_lowercase());
+    let has_upper = s.chars().any(|c| c.is_ascii_uppercase());
+    if has_lower && has_upper {
+      return Err(Err::MixedCase);
+    }
+
+    // normalize case
+    let s: String = s.chars().map(|c| c.to_ascii_lowercase()).collect();
+
+    Ok(Self(s))
+  }
+}
+
+impl std::fmt::Display for Hrp {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    write!(f, "{}", self.0)
   }
 }
 
@@ -652,7 +748,7 @@ pub mod checksum {
 /// // expected result
 /// let exp = RawBech32 {
 ///   scheme: Scheme::Bech32m,
-///   hrp: "a".to_string(),
+///   hrp: "a".parse()?,
 ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
 /// };
 ///
@@ -677,7 +773,7 @@ pub mod checksum {
 /// // populate structure
 /// let b = RawBech32 {
 ///   scheme: Scheme::Bech32m,
-///   hrp: "a".to_string(),
+///   hrp: "a".parse()?,
 ///   data: data,
 /// };
 ///
@@ -696,7 +792,7 @@ pub mod checksum {
 /// // expected result
 /// let exp = RawBech32 {
 ///   scheme: Scheme::Bech32m,
-///   hrp: "a".to_string(),
+///   hrp: "a".parse()?,
 ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
 /// };
 ///
@@ -722,7 +818,7 @@ pub struct RawBech32 {
   ///
   /// Human-readable string prefix containing alphanumeric ASCII
   /// characters.
-  pub hrp: String,
+  pub hrp: Hrp,
 
   /// Raw 5-bit data
   ///
@@ -751,7 +847,7 @@ impl RawBech32 {
   /// // expected result
   /// let exp = RawBech32 {
   ///   scheme: Scheme::Bech32m,
-  ///   hrp: "a".to_string(),
+  ///   hrp: "a".parse()?,
   ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
   /// };
   ///
@@ -771,7 +867,7 @@ impl RawBech32 {
   /// // expected result
   /// let exp = RawBech32 {
   ///   scheme: Scheme::Bech32,
-  ///   hrp: "a".to_string(),
+  ///   hrp: "a".parse()?,
   ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
   /// };
   ///
@@ -792,7 +888,7 @@ impl RawBech32 {
   /// // expected result
   /// let exp = RawBech32 {
   ///   scheme: Scheme::Bech32m,
-  ///   hrp: "a".to_string(),
+  ///   hrp: "a".parse()?,
   ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
   /// };
   ///
@@ -831,10 +927,8 @@ impl RawBech32 {
     let s: String = s.chars().map(|c| c.to_ascii_lowercase()).collect();
     let (hrp, enc) = s[..(s.len()-6)].rsplit_once('1').ok_or(Err::MissingSeparator)?;
 
-    // check hrp length
-    if !(1..84).contains(&hrp.len()) {
-      return Err(Err::InvalidHrpLen);
-    }
+    // parse hrp
+    let hrp: Hrp = hrp.parse()?;
 
     // decode data
     let mut data: Vec<u8> = Vec::with_capacity(enc.len());
@@ -854,9 +948,9 @@ impl RawBech32 {
     for scheme in schemes {
       // calculate checksum of hrp and data, then verify that it matches
       // the expected checksum
-      if checksum::make(scheme, hrp, &data) == exp_csum {
+      if checksum::make(scheme, &hrp, &data) == exp_csum {
         // checksum matches, return success
-        return Ok(Self { scheme, data, hrp: hrp.to_string() });
+        return Ok(Self { scheme, data, hrp });
       }
     }
 
@@ -909,7 +1003,7 @@ impl std::fmt::Display for RawBech32 {
 /// // expected result
 /// let exp = Bech32 {
 ///   scheme: Scheme::Bech32m,
-///   hrp: "a".to_string(),
+///   hrp: "a".parse()?,
 ///   data: vec![1, 2, 3, 4, 5],
 /// };
 ///
@@ -931,7 +1025,7 @@ impl std::fmt::Display for RawBech32 {
 /// // populate structure
 /// let b = Bech32 {
 ///   scheme: Scheme::Bech32m,
-///   hrp: "a".to_string(),
+///   hrp: "a".parse()?,
 ///   data: vec![1, 2, 3, 4, 5],
 /// };
 ///
@@ -950,7 +1044,7 @@ impl std::fmt::Display for RawBech32 {
 /// // expected result
 /// let exp = Bech32 {
 ///   scheme: Scheme::Bech32m,
-///   hrp: "a".to_string(),
+///   hrp: "a".parse()?,
 ///   data: vec![1, 2, 3, 4, 5],
 /// };
 ///
@@ -976,7 +1070,7 @@ pub struct Bech32 {
   ///
   /// Human-readable string prefix containing alphanumeric ASCII
   /// characters.
-  pub hrp: String,
+  pub hrp: Hrp,
 
   /// 8-bit data
   pub data: Vec<u8>,
@@ -1002,7 +1096,7 @@ impl Bech32 {
   /// // expected result
   /// let exp = Bech32 {
   ///   scheme: Scheme::Bech32m,
-  ///   hrp: "a".to_string(),
+  ///   hrp: "a".parse()?,
   ///   data: vec![1, 2, 3, 4, 5],
   /// };
   ///
@@ -1022,7 +1116,7 @@ impl Bech32 {
   /// // expected result
   /// let exp = Bech32 {
   ///   scheme: Scheme::Bech32,
-  ///   hrp: "a".to_string(),
+  ///   hrp: "a".parse()?,
   ///   data: vec![1, 2, 3, 4, 5],
   /// };
   ///
@@ -1043,7 +1137,7 @@ impl Bech32 {
   /// // expected result
   /// let exp = Bech32 {
   ///   scheme: Scheme::Bech32m,
-  ///   hrp: "a".to_string(),
+  ///   hrp: "a".parse()?,
   ///   data: vec![1, 2, 3, 4, 5],
   /// };
   ///
@@ -1061,7 +1155,7 @@ impl Bech32 {
   pub fn new(s: &str, scheme: Option<Scheme>) -> Result<Self, Err> {
     let r = RawBech32::new(s, scheme)?;
     let data = bits::convert::<5, 8>(r.data.as_ref());
-    Ok(Self { data, scheme: r.scheme, hrp: r.hrp.to_string() })
+    Ok(Self { data, scheme: r.scheme, hrp: r.hrp })
   }
 }
 
@@ -1233,16 +1327,17 @@ mod tests {
 
     #[test]
     fn test_to_str() {
+      let hrp: Hrp = "a".parse().unwrap();
       let tests = vec![(
-        RawBech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![] },
         "a12uel5l",
       ), (
-        RawBech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![] },
         "a1lqfn3a",
       ), (
         RawBech32 {
           scheme: Scheme::Bech32,
-          hrp: "bc".to_string(),
+          hrp: "bc".parse().unwrap(),
           data: vec![
             0b00000, 0b01000, 0b01000, 0b01101, 0b00111, 0b11001,
             0b00110, 0b10001, 0b00000, 0b00001, 0b11111, 0b11100,
@@ -1263,27 +1358,24 @@ mod tests {
 
     #[test]
     fn test_from_str() {
+      let hrp: Hrp = "a".parse().unwrap();
       let tests = vec![(
         "a12uel5l",
-        RawBech32 {
-          scheme: Scheme::Bech32,
-          hrp: "a".to_string(),
-          data: vec![],
-        },
+        RawBech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![] },
       ), (
         "A12UEL5L",
-        RawBech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![] },
       ), (
         "a1lqfn3a",
-        RawBech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![] },
       ), (
         "A1LQFN3A",
-        RawBech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![] },
       ), (
         "bc1qggd8ex3qpluj5wfhtzeq6vp87u7uxspxljx8se",
         RawBech32 {
           scheme: Scheme::Bech32,
-          hrp: "bc".to_string(),
+          hrp: "bc".parse().unwrap(),
           data: vec![
             0b00000, 0b01000, 0b01000, 0b01101, 0b00111, 0b11001,
             0b00110, 0b10001, 0b00000, 0b00001, 0b11111, 0b11100,
@@ -1307,17 +1399,18 @@ mod tests {
 
     #[test]
     fn test_to_str() {
+      let hrp: Hrp = "a".parse().unwrap();
       let tests = vec![(
-        Bech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![] },
+        Bech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![] },
         "a12uel5l",
       ), (
-        Bech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
+        Bech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![] },
         "a1lqfn3a",
       ), (
-        Bech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+        Bech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![1, 2, 3, 4, 5] },
         "a1qypqxpq9wunxjs",
       ), (
-        Bech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+        Bech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![1, 2, 3, 4, 5] },
         "a1qypqxpq9mqr2hj",
       )];
 
@@ -1329,24 +1422,25 @@ mod tests {
 
     #[test]
     fn test_from_str() {
+      let hrp: Hrp = "a".parse().unwrap();
       let tests = vec![(
         "a12uel5l",
-        Bech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![] },
+        Bech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![] },
       ), (
         "A12UEL5L",
-        Bech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![] },
+        Bech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![] },
       ), (
         "a1lqfn3a",
-        Bech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
+        Bech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![] },
       ), (
         "A1LQFN3A",
-        Bech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![] },
+        Bech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![] },
       ), (
         "a1qypqxpq9wunxjs",
-        Bech32 { scheme: Scheme::Bech32, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+        Bech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![1, 2, 3, 4, 5] },
       ), (
         "a1qypqxpq9mqr2hj",
-        Bech32 { scheme: Scheme::Bech32m, hrp: "a".to_string(), data: vec![1, 2, 3, 4, 5] },
+        Bech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![1, 2, 3, 4, 5] },
       )];
 
       for (s, exp) in tests {
