@@ -716,8 +716,8 @@ impl std::str::FromStr for Hrp {
       return Err(Err::InvalidHrpLen);
     }
 
-    // check for invalid bytes
-    if !s.bytes().all(|b| (33..127).contains(&b)) {
+    // check for invalid chars (e.g. not 33..127)
+    if !s.bytes().all(|b| b.is_ascii_graphic()) {
       return Err(Err::InvalidChar);
     }
 
@@ -1335,10 +1335,14 @@ mod tests {
 
     #[test]
     fn test_from_str_pass() {
+      // check all valid hrp chars
+      let valid_chars: String = (33..127).map(char::from).filter(|c| !c.is_ascii_uppercase()).collect();
+
       let tests = vec![
         ("a", "a"),
         ("asdf", "asdf"),
         ("ASDF", "asdf"),
+        (&valid_chars, &valid_chars),
       ];
 
       for (s, exp) in tests {
