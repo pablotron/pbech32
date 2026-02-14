@@ -74,6 +74,7 @@
 // [x] auto-detect scheme
 // [x] docs
 // [x] document longer string in header docs
+// [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
 
@@ -723,6 +724,12 @@ impl std::str::FromStr for Hrp {
     let s: String = s.chars().map(|c| c.to_ascii_lowercase()).collect();
 
     Ok(Self(s))
+  }
+}
+
+impl AsRef<str> for Hrp {
+  fn as_ref(&self) -> &str {
+    &self.0
   }
 }
 
