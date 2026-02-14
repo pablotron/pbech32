@@ -656,14 +656,28 @@ pub mod checksum {
 /// # }
 /// ```
 ///
-/// Convert [`Hrp`] to string:
+/// Convert [`Hrp`] to a string:
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
 /// use bech32::Hrp;
 ///
-/// let hrp: Hrp = "foobar".parse()?; // parse hrp
+/// let s = "foobar"; // hrp string
+/// let hrp: Hrp = s.parse()?; // parse string
 /// assert_eq!(hrp.to_string(), "foobar"); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Convert [`Hrp`] to a [`&str`] with [`Hrp::as_ref()`]:
+///
+/// ```
+/// # fn main() -> Result<(), bech32::Err> {
+/// use bech32::Hrp;
+///
+/// let s = "foobar"; // hrp string
+/// let hrp: Hrp = s.parse()?; // parse string
+/// assert_eq!(hrp.as_ref(), "foobar"); // check result
 /// # Ok(())
 /// # }
 /// ```
@@ -675,7 +689,7 @@ pub mod checksum {
 /// # fn main() -> Result<(), bech32::Err> {
 /// use bech32::Hrp;
 ///
-/// let hrp: Hrp = "TESTHRP".parse()?; // parse string
+/// let hrp: Hrp = "TESTHRP".parse()?; // parse hrp string
 /// assert_eq!(hrp.to_string(), "testhrp"); // check result
 /// # Ok(())
 /// # }
@@ -689,8 +703,8 @@ pub mod checksum {
 /// use bech32::{Err, Hrp};
 ///
 /// let s = "FOObar"; // mixed-case string
-/// let got = s.parse::<Hrp>(); // parse hrp string
-/// assert_eq!(got, Err(Err::MixedCase));
+/// let got = s.parse::<Hrp>(); // parse string
+/// assert_eq!(got, Err(Err::MixedCase)); // check result
 /// # }
 /// ```
 ///
