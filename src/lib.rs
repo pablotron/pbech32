@@ -79,6 +79,18 @@
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
 
+/// Maximum length of a [Bech32][] string.
+///
+/// **Note:** This library will parse strings up to [`MAX_LEN`]
+/// characters in length.  This differs from [BIP173][] which limits the
+/// maximum string length to 90 characters,
+///
+/// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+///   "Bech32 (BIP173)"
+/// [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+///   "BIP173 (Bech32)"
+pub const MAX_LEN: usize = 512;
+
 /// String parse error.
 ///
 /// # Examples
@@ -109,11 +121,11 @@
 pub enum Err {
   /// Invalid string length.
   ///
-  /// The length of a [Bech32][] string must be in the range `8..256`.
+  /// The length of a [Bech32][] string must be in the range `8..MAX_LEN`.
   ///
-  /// **Note:** This library will parse strings up to 256 characters in
-  /// length; the maximum length of a [Bech32][] string according to
-  /// [BIP173][] is 90 characters,
+  /// **Note:** This library will parse strings up to [`MAX_LEN`]
+  /// characters in length.  This differs from [BIP173][] which limits
+  /// the maximum string length to 90 characters,
   ///
   /// # Examples
   ///
@@ -131,8 +143,8 @@ pub enum Err {
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::{Bech32, Err};
-  /// let s = str::repeat("x", 256); // long string
+  /// use bech32::{Bech32, Err, MAX_LEN};
+  /// let s = str::repeat("x", MAX_LEN); // long string
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
   /// # }
   /// ```
@@ -888,7 +900,7 @@ pub struct RawBech32 {
 impl RawBech32 {
   /// bech32 string constraints
   const CONSTRAINTS: Constraints = Constraints {
-    range: (8, 256), // NOTE: BIP173 max is 91, not 256.
+    range: (8, MAX_LEN), // NOTE: BIP173 max is 91.
     error: Err::InvalidLen,
   };
 
