@@ -68,9 +68,13 @@
 // [x] docs
 // [x] document longer string in header docs
 // [x] proper hrp char validation (33..127)
-// [ ] proper data char validation (is_ascii_alphanumeri())
-// [ ] test for short data part
+// [-] proper data char validation (is_ascii_alphanumeri())
+//     n/a, caught by chars::decode()
+// [-] test for short data part
+//     n/a, but will report MissingSeparator
 // [ ] use encode/decode wording everywhere
+// [ ] intro paragraph explaining bech32 and library
+// [ ] rename to pbech32
 // [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
