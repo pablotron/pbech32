@@ -1226,6 +1226,7 @@ mod tests {
       }
     }
   }
+
   mod bits {
     use super::super::bits;
 
@@ -1334,6 +1335,39 @@ mod tests {
       for (src, exp) in tests {
         let got = bits::convert::<5, 8>(src.as_ref());
         assert_eq!(got, exp);
+      }
+    }
+  }
+
+  mod hrp {
+    use super::super::*;
+
+    #[test]
+    fn test_from_str_pass() {
+      let tests = vec![
+        ("a", "a"),
+        ("asdf", "asdf"),
+        ("ASDF", "asdf"),
+      ];
+
+      for (s, exp) in tests {
+        let got: Hrp = s.parse().unwrap();
+        assert_eq!(got.as_ref(), exp);
+      }
+    }
+
+    #[test]
+    fn test_from_str_fail() {
+      let long_str = str::repeat("x", 85);
+      let tests = vec![
+        ("", Err::InvalidHrpLen),
+        (&long_str, Err::InvalidHrpLen),
+        ("a b", Err::InvalidChar),
+        ("Ab", Err::MixedCase),
+      ];
+
+      for (s, exp) in tests {
+        assert_eq!(s.parse::<Hrp>(), Err(exp));
       }
     }
   }
