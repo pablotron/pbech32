@@ -12,7 +12,7 @@
 //!
 //! # Examples
 //!
-//! Parse [Bech32m][] string:
+//! Parse string as [`Bech32`]:
 //!
 //! ```
 //! # fn main() -> Result<(), bech32::Err> {
@@ -32,13 +32,11 @@
 //! # }
 //! ```
 //!
-//! Convert [`Bech32`] structure to string:
+//! Convert to string:
 //!
 //! ```
 //! # fn main() -> Result<(), bech32::Err> {
 //! use bech32::{Bech32, Scheme};
-//!
-//! let exp = "a1qypqxpq9mqr2hj"; // expected result
 //!
 //! // populate structure
 //! let b = Bech32 {
@@ -48,7 +46,7 @@
 //! };
 //!
 //! let got = b.to_string(); // convert to string
-//! assert_eq!(got, exp); // check result
+//! assert_eq!(got, "a1qypqxpq9mqr2hj"); // check result
 //! # Ok(())
 //! # }
 //! ```
@@ -583,11 +581,8 @@ pub mod checksum {
 
   /// Create checksum for given scheme, human-readable part, and data.
   ///
-  /// Notes:
-  ///
-  /// 1. The human-readable part must be lowercase.
-  /// 2. The data should be 5-bit encoded.  In other words, only the
-  ///    lower 5 bits of each byte contain data.
+  /// **Note:** `data` should be 5-bit encoded.  In other words, only
+  /// the lower 5 bits of each byte contain data.
   ///
   /// # Examples
   ///
