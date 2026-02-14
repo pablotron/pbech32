@@ -916,14 +916,14 @@ impl RawBech32 {
   ///   "Bech32m (BIP350)"
   pub fn new(s: &str, scheme: Option<Scheme>) -> Result<Self, Err> {
     // check that string length is in the range 8..256
-    //
-    // NOTE: The upper bound in BIP173 is 91 rather than 256.
+    // NOTE: The BIP173 max is 91, not 256.
     if !(8..256).contains(&s.len()) {
       return Err(Err::InvalidLen);
     }
 
-    // check for invalid chars
-    if !s.chars().all(|c| c.is_ascii_alphanumeric()) {
+    // check for invalid chars (e.g. c != 33..127)
+    // NOTE: non-exhaustive; data part chars are checked more later
+    if !s.chars().all(|c| c.is_ascii_graphic()) {
       return Err(Err::InvalidChar);
     }
 
@@ -934,9 +934,13 @@ impl RawBech32 {
       return Err(Err::MixedCase);
     }
 
-    // normalize case and split into (hrp, data)
+    // normalize case
     let s: String = s.chars().map(|c| c.to_ascii_lowercase()).collect();
-    let (hrp, enc) = s[..(s.len()-6)].rsplit_once('1').ok_or(Err::MissingSeparator)?;
+
+    // split into (hrp, data, checksum)
+    let cs_pos = s.len() - 6; // checksum start
+    let (hrp, enc) = s[..cs_pos].rsplit_once('1').ok_or(Err::MissingSeparator)?;
+    let cs_exp = &s.as_bytes()[cs_pos..]; // expected checksum
 
     // parse hrp
     let hrp: Hrp = hrp.parse()?;
@@ -947,19 +951,15 @@ impl RawBech32 {
       data.push(chars::decode(c).ok_or(Err::InvalidChar)?);
     }
 
-    // get expected checksum from end of string
-    let exp_csum = &s.as_bytes()[(s.len() - 6)..];
-
-    // get list of schemes to try
+    // get ordered list of checksum schemes
     let schemes = match scheme {
       Some(scheme) => vec![scheme],
       None => vec![Scheme::Bech32m, Scheme::Bech32],
     };
 
     for scheme in schemes {
-      // calculate checksum of hrp and data, then verify that it matches
-      // the expected checksum
-      if checksum::make(scheme, &hrp, &data) == exp_csum {
+      // checksum hrp and data, then verify against expected checksum
+      if checksum::make(scheme, &hrp, &data) == cs_exp {
         // checksum matches, return success
         return Ok(Self { scheme, data, hrp });
       }
