@@ -16,18 +16,13 @@
 //!
 //! ```
 //! # fn main() -> Result<(), bech32::Err> {
-//! use bech32::{Bech32, Scheme};
-//!
-//! // expected result
-//! let exp = Bech32 {
-//!   scheme: Scheme::Bech32m,
-//!   hrp: "a".parse()?,
-//!   data: vec![1, 2, 3, 4, 5],
-//! };
+//! use bech32::Bech32;
 //!
 //! let s = "a1qypqxpq9mqr2hj"; // bech32m string
 //! let got: Bech32 = s.parse()?; // parse string
-//! assert_eq!(got, exp); // check result
+//!
+//! assert_eq!(got.hrp.to_string(), "a"); // check human-readable part
+//! assert_eq!(got.data, vec![1, 2, 3, 4, 5]); // check data
 //! # Ok(())
 //! # }
 //! ```
@@ -72,6 +67,7 @@
 // [x] auto-detect scheme
 // [x] docs
 // [x] document longer string in header docs
+// [ ] test for short data
 // [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
@@ -717,8 +713,8 @@ impl std::str::FromStr for Hrp {
       return Err(Err::InvalidHrpLen);
     }
 
-    // check for invalid chars
-    if !s.chars().all(|c| c.is_ascii_alphanumeric()) {
+    // check for invalid bytes
+    if !s.bytes().all(|b| (33..127).contains(&b)) {
       return Err(Err::InvalidChar);
     }
 
@@ -761,16 +757,12 @@ impl std::fmt::Display for Hrp {
 /// # fn main() -> Result<(), bech32::Err> {
 /// use bech32::{RawBech32, Scheme};
 ///
-/// // expected result
-/// let exp = RawBech32 {
-///   scheme: Scheme::Bech32m,
-///   hrp: "a".parse()?,
-///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
-/// };
-///
 /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
 /// let got: RawBech32 = s.parse()?; // parse string
-/// assert_eq!(got, exp); // check result
+///
+/// assert_eq!(got.scheme, Scheme::Bech32m); // check scheme
+/// assert_eq!(got.hrp.to_string(), "a"); // check hrp
+/// assert_eq!(got.data, vec![0, 4, 1, 0, 6, 1, 0, 5]); // check data
 /// # Ok(())
 /// # }
 /// ```
@@ -1016,16 +1008,12 @@ impl std::fmt::Display for RawBech32 {
 /// # fn main() -> Result<(), bech32::Err> {
 /// use bech32::{Bech32, Scheme};
 ///
-/// // expected result
-/// let exp = Bech32 {
-///   scheme: Scheme::Bech32m,
-///   hrp: "a".parse()?,
-///   data: vec![1, 2, 3, 4, 5],
-/// };
-///
 /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
 /// let got: Bech32 = s.parse()?; // parse string
-/// assert_eq!(got, exp); // check result
+///
+/// assert_eq!(got.scheme, Scheme::Bech32m); // check scheme
+/// assert_eq!(got.hrp.to_string(), "a"); // check hrp
+/// assert_eq!(got.data, vec![1, 2, 3, 4, 5]); // check data
 /// # Ok(())
 /// # }
 /// ```
