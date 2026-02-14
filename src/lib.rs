@@ -636,6 +636,57 @@ pub mod checksum {
   }
 }
 
+/// String constraints.
+///
+/// Checks for the following:
+///
+/// - invalid string length
+/// - invalid characters
+/// - mixed-case characters
+///
+/// Used by [`RawBech32::new()`] and [`Hrp::from_str()`] to check string
+/// validity.
+struct Constraints {
+  /// Valid length range (low, high).
+  range: (usize, usize),
+
+  /// Error to return when length is out of range.
+  error: Err,
+}
+
+impl Constraints {
+  /// Check string against constraints.
+  ///
+  /// Checks for the following:
+  ///
+  /// - invalid string length
+  /// - invalid characters
+  /// - mixed-case characters
+  ///
+  /// Used by [`RawBech32::new()`] and [`Hrp::from_str()`] to check string
+  /// validity.
+  fn check(&self, s: &str) -> Result<(), Err> {
+    // check string length
+    if !(self.range.0..self.range.1).contains(&s.len()) {
+      return Err(self.error);
+    }
+
+    // check for invalid chars (e.g. c != 33..127)
+    if !s.chars().all(|c| c.is_ascii_graphic()) {
+      return Err(Err::InvalidChar);
+    }
+
+    // check for mixed case
+    let has_lower = s.chars().any(|c| c.is_ascii_lowercase());
+    let has_upper = s.chars().any(|c| c.is_ascii_uppercase());
+    if has_lower && has_upper {
+      return Err(Err::MixedCase);
+    }
+
+    Ok(())
+  }
+}
+
 /// Human-readable part (HRP) of [Bech32][] structure.
 ///
 /// **Note:** Always stored internally as lowercase.
@@ -711,28 +762,20 @@ pub mod checksum {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Hrp(pub String);
 
+impl Hrp {
+  /// hrp string constraints
+  const CONSTRAINTS: Constraints = Constraints {
+    range: (1, 84), // max 83 from BIP173
+    error: Err::InvalidHrpLen,
+  };
+}
+
 impl std::str::FromStr for Hrp {
   type Err = Err;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    // check string length
-    if !(1..84).contains(&s.len()) {
-      return Err(Err::InvalidHrpLen);
-    }
-
-    // check for invalid chars (e.g. not 33..127)
-    if !s.bytes().all(|b| b.is_ascii_graphic()) {
-      return Err(Err::InvalidChar);
-    }
-
-    // check for mixed case
-    let has_lower = s.chars().any(|c| c.is_ascii_lowercase());
-    let has_upper = s.chars().any(|c| c.is_ascii_uppercase());
-    if has_lower && has_upper {
-      return Err(Err::MixedCase);
-    }
-
-    // normalize case
+    // check constraints, normalize case
+    Self::CONSTRAINTS.check(s)?;
     let s: String = s.chars().map(|c| c.to_ascii_lowercase()).collect();
 
     Ok(Self(s))
@@ -843,6 +886,12 @@ pub struct RawBech32 {
 }
 
 impl RawBech32 {
+  /// bech32 string constraints
+  const CONSTRAINTS: Constraints = Constraints {
+    range: (8, 256), // NOTE: BIP173 max is 91, not 256.
+    error: Err::InvalidLen,
+  };
+
   /// Parse string as [`RawBech32`][] with given scheme.
   ///
   /// The difference between this function and [`str::parse()`] is that
@@ -919,26 +968,8 @@ impl RawBech32 {
   /// [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
   ///   "Bech32m (BIP350)"
   pub fn new(s: &str, scheme: Option<Scheme>) -> Result<Self, Err> {
-    // check that string length is in the range 8..256
-    // NOTE: The BIP173 max is 91, not 256.
-    if !(8..256).contains(&s.len()) {
-      return Err(Err::InvalidLen);
-    }
-
-    // check for invalid chars (e.g. c != 33..127)
-    // NOTE: non-exhaustive; data part chars are checked more later
-    if !s.chars().all(|c| c.is_ascii_graphic()) {
-      return Err(Err::InvalidChar);
-    }
-
-    // check for mixed case
-    let has_lower = s.chars().any(|c| c.is_ascii_lowercase());
-    let has_upper = s.chars().any(|c| c.is_ascii_uppercase());
-    if has_lower && has_upper {
-      return Err(Err::MixedCase);
-    }
-
-    // normalize case
+    // check constraints, normalize case
+    Self::CONSTRAINTS.check(s)?;
     let s: String = s.chars().map(|c| c.to_ascii_lowercase()).collect();
 
     // split into (hrp, data, checksum)
@@ -1330,6 +1361,59 @@ mod tests {
       for (src, exp) in tests {
         let got = bits::convert::<5, 8>(src.as_ref());
         assert_eq!(got, exp);
+      }
+    }
+  }
+
+  mod constraints {
+    use super::super::*;
+
+    #[test]
+    fn test_pass() {
+      let tests = vec![(
+        Constraints { range: (1, 5), error: Err::InvalidLen },
+        "a",
+      ), (
+        Constraints { range: (1, 5), error: Err::InvalidLen },
+        "A",
+      )];
+
+      for (c, s) in tests {
+        c.check(s).unwrap();
+      }
+    }
+
+    #[test]
+    fn test_fail() {
+      let tests = vec![(
+        "empty",
+        Constraints { range: (1, 5), error: Err::InvalidLen },
+        "",
+        Err::InvalidLen,
+      ), (
+        "long",
+        Constraints { range: (1, 5), error: Err::InvalidLen },
+        "aaaaa",
+        Err::InvalidLen,
+      ), (
+        "long, custom error",
+        Constraints { range: (1, 5), error: Err::InvalidHrpLen },
+        "aaaaa",
+        Err::InvalidHrpLen,
+      ), (
+        "mixed case",
+        Constraints { range: (1, 5), error: Err::InvalidLen },
+        "Aa",
+        Err::MixedCase,
+      ), (
+        "invalid char",
+        Constraints { range: (1, 5), error: Err::InvalidLen },
+        "a a",
+        Err::InvalidChar,
+      )];
+
+      for (name, c, s, exp) in tests {
+        assert_eq!(c.check(s), Err(exp), "{name}");
       }
     }
   }
