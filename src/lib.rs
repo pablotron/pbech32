@@ -1,10 +1,16 @@
 //! [Bech32][] encoding and decoding library.
 //!
-//! # Features
+//! [Bech32][] is a checksummed [base 32][] encoding format that is fast
+//! and user-friendly,  [Bech32m][] is an update to [Bech32][] which
+//! improves the checksum algorithm.  [Bech32][] and [Bech32m][] are
+//! specified in [BIP173][] and [BIP350][], respectively.
 //!
-//! - Supports [BIP173][] and [BIP350][] strings.
+//! # Library Features
+//!
+//! - [Bech32 (BIP173)][bip173] and [Bech32m (BIP350)][bip350] support.
 //! - Idiomatic encoding and decoding with [`std::fmt::Display`]
 //!   and [`std::str::FromStr`].
+//! - Decodes strings up to 512 characters in length.
 //! - No external dependencies.
 //!
 //! **Note:** This library relaxes the 90-byte limit in [BIP173][] and
@@ -35,9 +41,9 @@
 //!
 //! // populate structure
 //! let b = Bech32 {
-//!   scheme: Scheme::Bech32m,
-//!   hrp: "a".parse()?,
-//!   data: vec![1, 2, 3, 4, 5],
+//!   scheme: Scheme::Bech32m, // checksum scheme
+//!   hrp: "a".parse()?, // human-readable part
+//!   data: vec![1, 2, 3, 4, 5], // data
 //! };
 //!
 //! let got = b.to_string(); // encode as string
@@ -56,6 +62,8 @@
 //!   "BIP350 (Bech32m)"
 //! [ascii]: https://en.wikipedia.org/wiki/ASCII
 //!   "ASCII (Wikipedia)"
+//! [base 32]: https://en.wikipedia.org/wiki/Base32
+//!   "Base 32 (Wikipedia)"
 
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
