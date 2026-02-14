@@ -1,18 +1,18 @@
-//! [Bech32][] parsing and encoding library.
+//! [Bech32][] encoding and decoding library.
 //!
 //! # Features
 //!
 //! - Supports [BIP173][] and [BIP350][] strings.
-//! - Implements [`std::str::FromStr`] and [`std::fmt::Display`] for
-//!   idiomatic string parsing and serialization.
+//! - Idiomatic encoding and decoding with [`std::fmt::Display`]
+//!   and [`std::str::FromStr`].
 //! - No external dependencies.
 //!
-//! **Note:** This library relaxes the 90-character string length limit
-//! in [BIP173][] and allows strings of up to 256 characters in length.
+//! **Note:** This library relaxes the 90-byte limit in [BIP173][] and
+//! allows strings of up to 256 bytes in length.
 //!
 //! # Examples
 //!
-//! Parse string as [`Bech32`]:
+//! Decode from string:
 //!
 //! ```
 //! # fn main() -> Result<(), bech32::Err> {
@@ -27,7 +27,7 @@
 //! # }
 //! ```
 //!
-//! Convert to string:
+//! Encode to string:
 //!
 //! ```
 //! # fn main() -> Result<(), bech32::Err> {
@@ -40,7 +40,7 @@
 //!   data: vec![1, 2, 3, 4, 5],
 //! };
 //!
-//! let got = b.to_string(); // convert to string
+//! let got = b.to_string(); // encode as string
 //! assert_eq!(got, "a1qypqxpq9mqr2hj"); // check result
 //! # Ok(())
 //! # }
@@ -67,7 +67,10 @@
 // [x] auto-detect scheme
 // [x] docs
 // [x] document longer string in header docs
-// [ ] test for short data
+// [x] proper hrp char validation (33..127)
+// [ ] proper data char validation (is_ascii_alphanumeri())
+// [ ] test for short data part
+// [ ] use encode/decode wording everywhere
 // [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
@@ -105,7 +108,7 @@ pub enum Err {
   /// The length of a [Bech32][] string must be in the range `8..256`.
   ///
   /// **Note:** This library will parse strings up to 256 characters in
-  /// length; the  maximum length of a [Bech32][] string according to
+  /// length; the maximum length of a [Bech32][] string according to
   /// [BIP173][] is 90 characters,
   ///
   /// # Examples
