@@ -1372,6 +1372,27 @@ mod tests {
     }
   }
 
+  mod checksum {
+    use super::super::*;
+
+    #[test]
+    fn test_make() {
+      let long_data: Vec<u8> = (0..82).map(|_| 0).collect();
+      let tests = vec![
+        (Scheme::Bech32, "a", vec![], b"2uel5l"),
+        (Scheme::Bech32m, "A", vec![], b"lqfn3a"),
+        (Scheme::Bech32m, "a", vec![], b"lqfn3a"),
+        (Scheme::Bech32, "1", long_data, b"c8247j"),
+      ];
+
+      for (scheme, hrp, data, exp) in tests {
+        let hrp = hrp.parse().unwrap();
+        let got = checksum::make(scheme, &hrp, data);
+        assert_eq!(&got, exp);
+      }
+    }
+  }
+
   mod rawbech32 {
     use super::super::*;
 
