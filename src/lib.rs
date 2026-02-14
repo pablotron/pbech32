@@ -1398,13 +1398,28 @@ mod tests {
 
     #[test]
     fn test_to_str() {
-      let hrp: Hrp = "a".parse().unwrap();
+      let hrp_a: Hrp = "a".parse().unwrap();
+      let hrp_1: Hrp = "1".parse().unwrap();
+
       let tests = vec![(
-        RawBech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32, hrp: hrp_a.clone(), data: vec![] },
         "a12uel5l",
       ), (
-        RawBech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32m, hrp: hrp_a.clone(), data: vec![] },
         "a1lqfn3a",
+      ), (
+        RawBech32 {
+          scheme: Scheme::Bech32,
+          hrp: hrp_1,
+          data: vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0,
+          ],
+        },
+        "11qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8247j",
       ), (
         RawBech32 {
           scheme: Scheme::Bech32,
@@ -1429,19 +1444,34 @@ mod tests {
 
     #[test]
     fn test_from_str() {
-      let hrp: Hrp = "a".parse().unwrap();
+      let hrp_a: Hrp = "a".parse().unwrap();
+      let hrp_1: Hrp = "1".parse().unwrap();
+
       let tests = vec![(
         "a12uel5l",
-        RawBech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32, hrp: hrp_a.clone(), data: vec![] },
       ), (
         "A12UEL5L",
-        RawBech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32, hrp: hrp_a.clone(), data: vec![] },
       ), (
         "a1lqfn3a",
-        RawBech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32m, hrp: hrp_a.clone(), data: vec![] },
       ), (
         "A1LQFN3A",
-        RawBech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![] },
+        RawBech32 { scheme: Scheme::Bech32m, hrp: hrp_a.clone(), data: vec![] },
+      ), (
+        "11qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8247j",
+        RawBech32 {
+          scheme: Scheme::Bech32,
+          hrp: hrp_1.clone(),
+          data: vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0,
+          ],
+        },
       ), (
         "bc1qggd8ex3qpluj5wfhtzeq6vp87u7uxspxljx8se",
         RawBech32 {
