@@ -1,9 +1,19 @@
 //! [Bech32][] encoding and decoding library.
 //!
-//! [Bech32][] is a checksummed [base 32][] encoding format that is fast
-//! and user-friendly,  [Bech32m][] is an update to [Bech32][] which
-//! improves the checksum algorithm.  [Bech32][] and [Bech32m][] are
-//! specified in [BIP173][] and [BIP350][], respectively.
+//! [Bech32][] is a [checksummed][checksum] [base 32][] encoding format
+//! that is fast and user-friendly.  [Bech32m][] is an update to
+//! [Bech32][] which improves the [checksum][] algorithm.  [Bech32][]
+//! and [Bech32m][] are specified in [BIP173][] and [BIP350][],
+//! respectively.
+//!
+//! A [Bech32][] string contains a human-readable part (HRP), a
+//! [base 32][]-encoded data part, and a 6 character [BCH][] checksum.
+//!
+//! Here is an example [Bech32m][] string:
+//!
+//! ```text
+//! hello1wahhymryxruu7j
+//! ```
 //!
 //! # Library Features
 //!
@@ -18,8 +28,8 @@
 //! Decode from string:
 //!
 //! ```
-//! # fn main() -> Result<(), bech32::Err> {
-//! use bech32::Bech32;
+//! # fn main() -> Result<(), pbech32::Err> {
+//! use pbech32::Bech32;
 //!
 //! let s = "a1qypqxpq9mqr2hj"; // bech32m string
 //! let got: Bech32 = s.parse()?; // parse string
@@ -33,8 +43,8 @@
 //! Encode to string:
 //!
 //! ```
-//! # fn main() -> Result<(), bech32::Err> {
-//! use bech32::{Bech32, Scheme};
+//! # fn main() -> Result<(), pbech32::Err> {
+//! use pbech32::{Bech32, Scheme};
 //!
 //! // populate structure
 //! let b = Bech32 {
@@ -61,6 +71,10 @@
 //!   "ASCII (Wikipedia)"
 //! [base 32]: https://en.wikipedia.org/wiki/Base32
 //!   "Base 32 (Wikipedia)"
+//! [checksum]: https://en.wikipedia.org/wiki/Checksum
+//!   "Checksum (Wikipedia)"
+//! [bch]: https://en.wikipedia.org/wiki/BCH_code
+//!   "BCH code (Wikipedia)"
 
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
@@ -101,7 +115,7 @@ pub const MAX_LEN: usize = 512;
 ///
 /// ```
 /// # fn main() {
-/// use bech32::{Bech32, Err};
+/// use pbech32::{Bech32, Err};
 /// let s = ""; // empty string
 /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
 /// # }
@@ -111,7 +125,7 @@ pub const MAX_LEN: usize = 512;
 ///
 /// ```
 /// # fn main() {
-/// use bech32::{Bech32, Err};
+/// use pbech32::{Bech32, Err};
 /// let s = "a 1xxxxxx"; // string with invalid bech32 character
 /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChar));
 /// # }
@@ -135,7 +149,7 @@ pub enum Err {
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::{Bech32, Err};
+  /// use pbech32::{Bech32, Err};
   /// let s = ""; // empty string
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
   /// # }
@@ -145,7 +159,7 @@ pub enum Err {
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::{Bech32, Err, MAX_LEN};
+  /// use pbech32::{Bech32, Err, MAX_LEN};
   /// let s = str::repeat("x", MAX_LEN); // long string
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
   /// # }
@@ -167,7 +181,7 @@ pub enum Err {
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::{Bech32, Err};
+  /// use pbech32::{Bech32, Err};
   /// let s = "a 1xxxxxx"; // string with invalid bech32 character
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChar));
   /// # }
@@ -191,7 +205,7 @@ pub enum Err {
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::{Bech32, Err};
+  /// use pbech32::{Bech32, Err};
   /// let s = "Ab1xxxxxx"; // string with mixed-case characters
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::MixedCase));
   /// # }
@@ -213,7 +227,7 @@ pub enum Err {
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::{Bech32, Err};
+  /// use pbech32::{Bech32, Err};
   /// let s = "avxxxxxx"; // string without separator
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::MissingSeparator));
   /// # }
@@ -234,7 +248,7 @@ pub enum Err {
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::{Bech32, Err};
+  /// use pbech32::{Bech32, Err};
   /// let s = "1axxxxxx"; // string with empty HRP
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidHrpLen));
   /// # }
@@ -244,7 +258,7 @@ pub enum Err {
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::{Bech32, Err};
+  /// use pbech32::{Bech32, Err};
   /// let s = str::repeat("a", 84) + "1xxxxxx"; // string with long HRP
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidHrpLen));
   /// # }
@@ -262,7 +276,7 @@ pub enum Err {
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::{Bech32, Err};
+  /// use pbech32::{Bech32, Err};
   /// let s = "a1xxxxxx"; // string with invalid checksum
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChecksum));
   /// # }
@@ -283,8 +297,8 @@ pub enum Err {
 /// Parse [Bech32][bip173] string:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{Bech32, Scheme};
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::{Bech32, Scheme};
 /// let s = "a1qypqxpq9wunxjs"; // bech32 string (BIP173 checksum)
 /// let b: Bech32 = s.parse()?; // parse string
 /// assert_eq!(b.scheme, Scheme::Bech32); // check scheme
@@ -295,8 +309,8 @@ pub enum Err {
 /// Parse [Bech32m][bip350] string:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{Bech32, Scheme};
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::{Bech32, Scheme};
 /// let s = "a1qypqxpq9mqr2hj"; // bech32m string (BIP350 checksum)
 /// let b: Bech32 = s.parse()?; // parse string
 /// assert_eq!(b.scheme, Scheme::Bech32m); // check scheme
@@ -319,8 +333,8 @@ pub enum Scheme {
   /// Parse [Bech32][bip173] string:
   ///
   /// ```
-  /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{Bech32, Scheme};
+  /// # fn main() -> Result<(), pbech32::Err> {
+  /// use pbech32::{Bech32, Scheme};
   /// let s = "a1qypqxpq9wunxjs"; // bech32 string (BIP173 checksum)
   /// let b: Bech32 = s.parse()?; // parse string
   /// assert_eq!(b.scheme, Scheme::Bech32); // check scheme
@@ -339,8 +353,8 @@ pub enum Scheme {
   /// Parse [Bech32m][bip350] string:
   ///
   /// ```
-  /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{Bech32, Scheme};
+  /// # fn main() -> Result<(), pbech32::Err> {
+  /// use pbech32::{Bech32, Scheme};
   /// let s = "a1qypqxpq9mqr2hj"; // bech32m string (BIP350 checksum)
   /// let b: Bech32 = s.parse()?; // parse string
   /// assert_eq!(b.scheme, Scheme::Bech32m); // check scheme
@@ -426,7 +440,7 @@ mod chars {
 /// ```
 /// # fn main() {
 /// let exp = vec![0, 4, 1, 0, 6, 1, 0, 5]; // expected 5-bit result
-/// let got = bech32::bits::convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode 8-bit data
+/// let got = pbech32::bits::convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode 8-bit data
 /// assert_eq!(got, exp); // check 5-bit result
 /// # }
 /// ```
@@ -436,7 +450,7 @@ mod chars {
 /// ```
 /// # fn main() {
 /// let exp = vec![1, 2, 3, 4, 5]; // expected 8-bit result
-/// let got = bech32::bits::convert::<5, 8>(&[0, 4, 1, 0, 6, 1, 0, 5]); // decode 5-bit data
+/// let got = pbech32::bits::convert::<5, 8>(&[0, 4, 1, 0, 6, 1, 0, 5]); // decode 5-bit data
 /// assert_eq!(got, exp); // check 8-bit result
 /// # }
 /// ```
@@ -480,7 +494,7 @@ pub mod bits {
   /// ```
   /// # fn main() {
   /// let exp = vec![0, 4, 1, 0, 6, 1, 0, 5]; // expected 5-bit result
-  /// let got = bech32::bits::convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode 8-bit data
+  /// let got = pbech32::bits::convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode 8-bit data
   /// assert_eq!(got, exp); // check 5-bit result
   /// # }
   /// ```
@@ -490,7 +504,7 @@ pub mod bits {
   /// ```
   /// # fn main() {
   /// let exp = vec![1, 2, 3, 4, 5]; // expected 8-bit result
-  /// let got = bech32::bits::convert::<5, 8>(&[0, 4, 1, 0, 6, 1, 0, 5]); // decode 5-bit data
+  /// let got = pbech32::bits::convert::<5, 8>(&[0, 4, 1, 0, 6, 1, 0, 5]); // decode 5-bit data
   /// assert_eq!(got, exp); // check 8-bit result
   /// # }
   /// ```
@@ -533,8 +547,8 @@ pub mod bits {
 /// Create [Bech32][] checksum:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{bits, checksum, Hrp, Scheme};
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::{bits, checksum, Hrp, Scheme};
 ///
 /// let exp = b"wunxjs"; // expected checksum
 /// let hrp: Hrp = "a".parse()?; // parse HRP
@@ -548,8 +562,8 @@ pub mod bits {
 /// Create [Bech32m][] checksum:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{bits, checksum, Hrp, Scheme};
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::{bits, checksum, Hrp, Scheme};
 ///
 /// let exp = b"mqr2hj"; // expected checksum
 /// let hrp: Hrp = "a".parse()?; // parse HRP
@@ -603,8 +617,8 @@ pub mod checksum {
   /// Create [Bech32][] checksum:
   ///
   /// ```
-  /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{bits, checksum, Scheme};
+  /// # fn main() -> Result<(), pbech32::Err> {
+  /// use pbech32::{bits, checksum, Scheme};
   ///
   /// let exp = b"wunxjs"; // expected checksum
   /// let hrp = "a".parse()?; // parse hrp
@@ -618,8 +632,8 @@ pub mod checksum {
   /// Create [Bech32m][] checksum:
   ///
   /// ```
-  /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{bits, checksum, Scheme};
+  /// # fn main() -> Result<(), pbech32::Err> {
+  /// use pbech32::{bits, checksum, Scheme};
   ///
   /// let exp = b"mqr2hj"; // expected checksum
   /// let hrp = "a".parse()?; // parse hrp
@@ -714,8 +728,8 @@ impl Constraints {
 /// Parse string as [`Hrp`]:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::Hrp;
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::Hrp;
 ///
 /// let s = "testhrp"; // hrp string
 /// let hrp: Hrp = s.parse()?; // parse string
@@ -726,8 +740,8 @@ impl Constraints {
 /// Convert [`Hrp`] to a string:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::Hrp;
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::Hrp;
 ///
 /// let s = "foobar"; // hrp string
 /// let hrp: Hrp = s.parse()?; // parse string
@@ -739,8 +753,8 @@ impl Constraints {
 /// Convert [`Hrp`] to a [`&str`] with [`Hrp::as_ref()`]:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::Hrp;
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::Hrp;
 ///
 /// let s = "foobar"; // hrp string
 /// let hrp: Hrp = s.parse()?; // parse string
@@ -753,8 +767,8 @@ impl Constraints {
 /// lowercase when parsed as an [`Hrp`]:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::Hrp;
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::Hrp;
 ///
 /// let hrp: Hrp = "TESTHRP".parse()?; // parse hrp string
 /// assert_eq!(hrp.to_string(), "testhrp"); // check result
@@ -767,7 +781,7 @@ impl Constraints {
 ///
 /// ```
 /// # fn main() {
-/// use bech32::{Err, Hrp};
+/// use pbech32::{Err, Hrp};
 ///
 /// let s = "FOObar"; // mixed-case string
 /// let got = s.parse::<Hrp>(); // parse string
@@ -824,8 +838,8 @@ impl std::fmt::Display for Hrp {
 /// Decode [Bech32m][] string as [`RawBech32`]:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{RawBech32, Scheme};
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::{RawBech32, Scheme};
 ///
 /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
 /// let got: RawBech32 = s.parse()?; // parse string
@@ -840,8 +854,8 @@ impl std::fmt::Display for Hrp {
 /// Encode [`RawBech32`] as string:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{bits::convert, RawBech32, Scheme};
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::{bits::convert, RawBech32, Scheme};
 ///
 /// let exp = "a1qypqxpq9mqr2hj"; // expected result
 ///
@@ -864,8 +878,8 @@ impl std::fmt::Display for Hrp {
 /// Use [`RawBech32::new()`] to parse a specific scheme:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{RawBech32, Scheme};
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::{RawBech32, Scheme};
 ///
 /// // expected result
 /// let exp = RawBech32 {
@@ -928,8 +942,8 @@ impl RawBech32 {
   /// Decode string using [`Scheme::Bech32m`]:
   ///
   /// ```
-  /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{RawBech32, Scheme};
+  /// # fn main() -> Result<(), pbech32::Err> {
+  /// use pbech32::{RawBech32, Scheme};
   ///
   /// // expected result
   /// let exp = RawBech32 {
@@ -948,8 +962,8 @@ impl RawBech32 {
   /// Decode string using [`Scheme::Bech32`]:
   ///
   /// ```
-  /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{RawBech32, Scheme};
+  /// # fn main() -> Result<(), pbech32::Err> {
+  /// use pbech32::{RawBech32, Scheme};
   ///
   /// // expected result
   /// let exp = RawBech32 {
@@ -969,8 +983,8 @@ impl RawBech32 {
   /// to calling [`str::parse()`]):
   ///
   /// ```
-  /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{RawBech32, Scheme};
+  /// # fn main() -> Result<(), pbech32::Err> {
+  /// use pbech32::{RawBech32, Scheme};
   ///
   /// // expected result
   /// let exp = RawBech32 {
@@ -1066,8 +1080,8 @@ impl std::fmt::Display for RawBech32 {
 /// Decode string as [`Bech32`]:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{Bech32, Scheme};
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::{Bech32, Scheme};
 ///
 /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
 /// let got: Bech32 = s.parse()?; // parse string
@@ -1082,8 +1096,8 @@ impl std::fmt::Display for RawBech32 {
 /// Encode [`Bech32`] as string:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{Bech32, Scheme};
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::{Bech32, Scheme};
 ///
 /// let exp = "a1qypqxpq9mqr2hj"; // expected result
 ///
@@ -1103,8 +1117,8 @@ impl std::fmt::Display for RawBech32 {
 /// Use [`Bech32::new()`] to parse a specific scheme:
 ///
 /// ```
-/// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{Bech32, Scheme};
+/// # fn main() -> Result<(), pbech32::Err> {
+/// use pbech32::{Bech32, Scheme};
 ///
 /// // expected result
 /// let exp = Bech32 {
@@ -1158,8 +1172,8 @@ impl Bech32 {
   /// Decode string using [`Scheme::Bech32m`]:
   ///
   /// ```
-  /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{Bech32, Scheme};
+  /// # fn main() -> Result<(), pbech32::Err> {
+  /// use pbech32::{Bech32, Scheme};
   ///
   /// // expected result
   /// let exp = Bech32 {
@@ -1178,8 +1192,8 @@ impl Bech32 {
   /// Decode string using [`Scheme::Bech32`]:
   ///
   /// ```
-  /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{Bech32, Scheme};
+  /// # fn main() -> Result<(), pbech32::Err> {
+  /// use pbech32::{Bech32, Scheme};
   ///
   /// // expected result
   /// let exp = Bech32 {
@@ -1199,8 +1213,8 @@ impl Bech32 {
   /// [`str::parse()`]):
   ///
   /// ```
-  /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{Bech32, Scheme};
+  /// # fn main() -> Result<(), pbech32::Err> {
+  /// use pbech32::{Bech32, Scheme};
   ///
   /// // expected result
   /// let exp = Bech32 {
