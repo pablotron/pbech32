@@ -414,7 +414,7 @@ mod chars {
       's' => Some(16),
       '3' => Some(17),
       'j' => Some(18),
-      'n' => Some(29),
+      'n' => Some(19),
       '5' => Some(20),
       '4' => Some(21),
       'k' => Some(22),
