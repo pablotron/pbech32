@@ -432,11 +432,11 @@ mod chars {
   }
 }
 
-/// 5-bit to 8-bit data conversion functions.
+/// 5-bit/8-bit data conversion functions.
 ///
 /// # Examples
 ///
-/// Encode 8-bit data as vector of 5-bit bytes:
+/// Encode 8-bit bytes as vector of 5-bit bytes:
 ///
 /// ```
 /// # fn main() {
@@ -446,7 +446,7 @@ mod chars {
 /// # }
 /// ```
 ///
-/// Decode 5-bit data as vector of 8-bit bytes:
+/// Decode 5-bit bytes as vector of 8-bit bytes:
 ///
 /// ```
 /// # fn main() {
@@ -457,6 +457,11 @@ mod chars {
 /// ```
 pub mod bits {
   /// Get capacity needed for bit conversion.
+  ///
+  /// # Generic Parameters
+  ///
+  /// - `SRC_BITS`: Input bit size (one of `5` or `8`).
+  /// - `DST_BITS`: Output bit size (one of `5` or `8`).
   fn capacity<
     const SRC_BITS: usize, // input bit size (5 or 8)
     const DST_BITS: usize, // output bit size (5 or 8)
