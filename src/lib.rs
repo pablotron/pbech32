@@ -23,7 +23,7 @@
 //! - [Bech32 (BIP173)][bip173] and [Bech32m (BIP350)][bip350] support.
 //! - Idiomatic encoding and decoding via the [`std::fmt::Display`]
 //!   and [`std::str::FromStr`] traits.
-//! - Decode strings up to 512 characters long (see [note][MAX_LEN]).
+//! - Decode arbitrary long strings.
 //! - No external dependencies.
 //!
 //! # Examples
@@ -111,20 +111,11 @@
 // [x] intro paragraph explaining bech32 and library
 // [x] rename to pbech32
 // [x] bug: scheme: bech32m, hrp: "hi", data: "folks"
-// [ ] increase/remove MAX_LEN (4k?)
+// [x] increase/remove MAX_LEN (4k?)
 // [ ] streaming/no-alloc api
 // [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
-
-/// Maximum string decode length, in bytes.
-///
-/// **Note:** This limit differs from [BIP173][] which limits the
-/// maximum string length to 90 bytes.
-///
-/// [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-///   "BIP173 (Bech32)"
-pub const MAX_LEN: usize = 512;
 
 /// String parse error.
 ///
@@ -156,11 +147,10 @@ pub const MAX_LEN: usize = 512;
 pub enum Err {
   /// Invalid string length.
   ///
-  /// The length of a [Bech32][] string must be in the range `8..MAX_LEN`.
+  /// The length of a [Bech32][] string must be in the range `8..`.
   ///
-  /// **Note:** This library will parse strings up to [`MAX_LEN`]
-  /// characters long.  This differs from [BIP173][] which limits
-  /// the maximum string length to 90 characters,
+  /// **Note:** [BIP173][] limits the maximum string length to 90
+  /// characters,
   ///
   /// # Examples
   ///
@@ -170,16 +160,6 @@ pub enum Err {
   /// # fn main() {
   /// use pbech32::{Bech32, Err};
   /// let s = ""; // empty string
-  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
-  /// # }
-  /// ```
-  ///
-  /// Try to parse a string that is too long:
-  ///
-  /// ```
-  /// # fn main() {
-  /// use pbech32::{Bech32, Err, MAX_LEN};
-  /// let s = str::repeat("x", MAX_LEN); // long string
   /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
   /// # }
   /// ```
@@ -697,7 +677,9 @@ pub mod checksum {
 /// validity.
 struct Constraints {
   /// Valid length range (low, high).
-  range: (usize, usize),
+  ///
+  /// **Note:** upper bound is optiona.
+  range: (usize, Option<usize>),
 
   /// Error to return when length is out of range.
   error: Err,
@@ -715,8 +697,13 @@ impl Constraints {
   /// Used by [`RawBech32::new()`] and [`Hrp::from_str()`] to check string
   /// validity.
   fn check(&self, s: &str) -> Result<(), Err> {
+    let valid_length = match self.range.1 {
+      Some(max) => (self.range.0..max).contains(&s.len()),
+      None => (self.range.0..).contains(&s.len()),
+    };
+
     // check string length
-    if !(self.range.0..self.range.1).contains(&s.len()) {
+    if !valid_length {
       return Err(self.error);
     }
 
@@ -823,7 +810,7 @@ pub struct Hrp(pub String);
 impl Hrp {
   /// hrp string constraints
   const CONSTRAINTS: Constraints = Constraints {
-    range: (1, 84), // max 83 from BIP173
+    range: (1, Some(84)), // max 83 from BIP173
     error: Err::InvalidHrpLen,
   };
 }
@@ -949,7 +936,7 @@ pub struct RawBech32 {
 impl RawBech32 {
   /// bech32 string constraints
   const CONSTRAINTS: Constraints = Constraints {
-    range: (8, MAX_LEN), // NOTE: BIP173 max is 91.
+    range: (8, None), // NOTE: BIP173 max is 91.
     error: Err::InvalidLen,
   };
 
@@ -1435,10 +1422,10 @@ mod tests {
     #[test]
     fn test_pass() {
       let tests = vec![(
-        Constraints { range: (1, 5), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
         "a",
       ), (
-        Constraints { range: (1, 5), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
         "A",
       )];
 
@@ -1451,27 +1438,27 @@ mod tests {
     fn test_fail() {
       let tests = vec![(
         "empty",
-        Constraints { range: (1, 5), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
         "",
         Err::InvalidLen,
       ), (
         "long",
-        Constraints { range: (1, 5), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
         "aaaaa",
         Err::InvalidLen,
       ), (
         "long, custom error",
-        Constraints { range: (1, 5), error: Err::InvalidHrpLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidHrpLen },
         "aaaaa",
         Err::InvalidHrpLen,
       ), (
         "mixed case",
-        Constraints { range: (1, 5), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
         "Aa",
         Err::MixedCase,
       ), (
         "invalid char",
-        Constraints { range: (1, 5), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
         "a a",
         Err::InvalidChar,
       )];
