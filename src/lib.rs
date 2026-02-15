@@ -2,12 +2,12 @@
 //!
 //! [Bech32][] is a [checksummed][checksum] [base 32][] encoding format
 //! that is fast and user-friendly.  [Bech32m][] is an update to
-//! [Bech32][] which improves the [checksum][] algorithm.  [Bech32][]
-//! and [Bech32m][] are specified in [BIP173][] and [BIP350][],
-//! respectively.
+//! [Bech32][] with an improved [checksum][] algorithm.
 //!
 //! A [Bech32][] string contains a human-readable part (HRP), a
-//! [base 32][]-encoded data part, and a 6 character [BCH][] checksum.
+//! data part, and a 6 character [BCH][] checksum.  The data part and
+//! checksum are [base 32][]-encoded with a user-friendly [alphabet][]
+//! that only contains lowercase [ASCII][] alphanumeric characters.
 //!
 //! Here is an example [Bech32m][] string:
 //!
@@ -15,12 +15,15 @@
 //! hello1vehkc6mn27xpct
 //! ```
 //!
+//! [Bech32][] and [Bech32m][] are specified in [BIP173][] and [BIP350][],
+//! respectively.
+//!
 //! # Library Features
 //!
 //! - [Bech32 (BIP173)][bip173] and [Bech32m (BIP350)][bip350] support.
-//! - Idiomatic string encoding and decoding with [`std::fmt::Display`]
-//!   and [`std::str::FromStr`].
-//! - Decodes strings up to 512 characters long (see [note][MAX_LEN]).
+//! - Idiomatic encoding and decoding via the [`std::fmt::Display`]
+//!   and [`std::str::FromStr`] traits.
+//! - Decode strings up to 512 characters long (see [note][MAX_LEN]).
 //! - No external dependencies.
 //!
 //! # Examples
@@ -31,8 +34,8 @@
 //! # fn main() -> Result<(), pbech32::Err> {
 //! use pbech32::Bech32;
 //!
-//! let s = "a1qypqxpq9mqr2hj"; // bech32m string
-//! let got: Bech32 = s.parse()?; // parse string
+//! let s = "a1qypqxpq9mqr2hj"; // bech32m-encoded string
+//! let got: Bech32 = s.parse()?; // decode string
 //!
 //! assert_eq!(got.hrp.to_string(), "a"); // check human-readable part
 //! assert_eq!(got.data, vec![1, 2, 3, 4, 5]); // check data
@@ -44,17 +47,28 @@
 //!
 //! ```
 //! # fn main() -> Result<(), pbech32::Err> {
-//! use pbech32::{Bech32, Scheme};
+//! use pbech32::{Bech32, Hrp, Scheme};
 //!
-//! // populate structure
-//! let b = Bech32 {
-//!   scheme: Scheme::Bech32m, // checksum scheme
-//!   hrp: "a".parse()?, // human-readable part
-//!   data: vec![1, 2, 3, 4, 5], // data
-//! };
+//! let scheme = Scheme::Bech32m; // checksum scheme
+//! let hrp: Hrp = "a".parse()?; // human-readable part
+//! let data = vec![1, 2, 3, 4, 5]; // data
+//! let got = Bech32 { scheme, hrp, data }.to_string(); // encode as string
 //!
-//! let got = b.to_string(); // encode as string
 //! assert_eq!(got, "a1qypqxpq9mqr2hj"); // check result
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! Decoding a string verifies the [checksum][] to catch mistakes:
+//!
+//! ```
+//! # fn main() -> Result<(), pbech32::Err> {
+//! use pbech32::{Bech32, Err};
+//!
+//! let s = "a1wypqxpq9mqr2hj"; // string with error ("q" changed to "w")
+//! let got = s.parse::<Bech32>(); // try to decode string
+//!
+//! assert_eq!(got, Err(Err::InvalidChecksum)); // check result
 //! # Ok(())
 //! # }
 //! ```
@@ -75,6 +89,8 @@
 //!   "Checksum (Wikipedia)"
 //! [bch]: https://en.wikipedia.org/wiki/BCH_code
 //!   "BCH code (Wikipedia)"
+//! [alphabet]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki#bech32
+//!   "BIP173: Specification: Bech32"
 
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
@@ -94,7 +110,9 @@
 // [x] use encode/decode wording everywhere
 // [x] intro paragraph explaining bech32 and library
 // [x] rename to pbech32
-// [ ] bug: scheme: bech32m, hrp: "hi", data: "folks"
+// [x] bug: scheme: bech32m, hrp: "hi", data: "folks"
+// [ ] increase/remove MAX_LEN (4k?)
+// [ ] streaming/no-alloc api
 // [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
