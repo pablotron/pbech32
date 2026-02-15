@@ -4,8 +4,8 @@
 //! # Example
 //!
 //! ```sh
-//! $ cargo run -q --example decode -- foo1vfshy2dnlu3
-//! bar
+//! $ cargo run -q --example decode fizz1vf6h573ppvvuqe
+//! buzz!
 //! ```
 //!
 //! [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
