@@ -1,6 +1,10 @@
 [package]
-name = "bech32"
+name = "pbech32"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+
+[[example]]
+name = "hello-world"
+
