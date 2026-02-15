@@ -20,7 +20,7 @@
 //! - [Bech32 (BIP173)][bip173] and [Bech32m (BIP350)][bip350] support.
 //! - Idiomatic string encoding and decoding with [`std::fmt::Display`]
 //!   and [`std::str::FromStr`].
-//! - Decodes strings up to 512 characters in length (see [note][MAX_LEN]).
+//! - Decodes strings up to 512 characters long (see [note][MAX_LEN]).
 //! - No external dependencies.
 //!
 //! # Examples
@@ -140,7 +140,7 @@ pub enum Err {
   /// The length of a [Bech32][] string must be in the range `8..MAX_LEN`.
   ///
   /// **Note:** This library will parse strings up to [`MAX_LEN`]
-  /// characters in length.  This differs from [BIP173][] which limits
+  /// characters long.  This differs from [BIP173][] which limits
   /// the maximum string length to 90 characters,
   ///
   /// # Examples
