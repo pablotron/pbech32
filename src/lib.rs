@@ -12,7 +12,7 @@
 //! Here is an example [Bech32m][] string:
 //!
 //! ```text
-//! hello1wahhymryxruu7j
+//! hello1vehkc6mn27xpct
 //! ```
 //!
 //! # Library Features
@@ -1666,6 +1666,9 @@ mod tests {
       ), (
         "a1qypqxpq9mqr2hj",
         Bech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![1, 2, 3, 4, 5] },
+      ), (
+        "hello1vehkc6mn27xpct",
+        Bech32 { scheme: Scheme::Bech32m, hrp: "hello".parse::<Hrp>().unwrap(), data: b"folks".to_vec() },
       )];
 
       for (s, exp) in tests {
