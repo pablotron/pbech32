@@ -93,7 +93,8 @@
 //     n/a, but will report MissingSeparator
 // [x] use encode/decode wording everywhere
 // [x] intro paragraph explaining bech32 and library
-// [ ] rename to pbech32
+// [x] rename to pbech32
+// [ ] bug: scheme: bech32m, hrp: "hi", data: "folks"
 // [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
