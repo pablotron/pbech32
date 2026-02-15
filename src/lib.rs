@@ -8,13 +8,10 @@
 //! # Library Features
 //!
 //! - [Bech32 (BIP173)][bip173] and [Bech32m (BIP350)][bip350] support.
-//! - Idiomatic encoding and decoding with [`std::fmt::Display`]
+//! - Idiomatic string encoding and decoding with [`std::fmt::Display`]
 //!   and [`std::str::FromStr`].
-//! - Decodes strings up to 512 characters in length.
+//! - Decodes strings up to 512 characters in length (see [note][MAX_LEN]).
 //! - No external dependencies.
-//!
-//! **Note:** This library relaxes the 90-byte limit in [BIP173][] and
-//! allows strings of up to 256 bytes in length.
 //!
 //! # Examples
 //!
@@ -87,14 +84,11 @@
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
 
-/// Maximum length of a [Bech32][] string.
+/// Maximum string decode length, in bytes.
 ///
-/// **Note:** This library will parse strings up to [`MAX_LEN`]
-/// characters in length.  This differs from [BIP173][] which limits the
-/// maximum string length to 90 characters,
+/// **Note:** This limit differs from [BIP173][] which limits the
+/// maximum string length to 90 bytes.
 ///
-/// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
-///   "Bech32 (BIP173)"
 /// [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 ///   "BIP173 (Bech32)"
 pub const MAX_LEN: usize = 512;
@@ -431,10 +425,8 @@ mod chars {
 ///
 /// ```
 /// # fn main() {
-/// use bech32::bits::convert;
-///
 /// let exp = vec![0, 4, 1, 0, 6, 1, 0, 5]; // expected 5-bit result
-/// let got = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode 8-bit data
+/// let got = bech32::bits::convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode 8-bit data
 /// assert_eq!(got, exp); // check 5-bit result
 /// # }
 /// ```
@@ -443,10 +435,8 @@ mod chars {
 ///
 /// ```
 /// # fn main() {
-/// use bech32::bits::convert;
-///
 /// let exp = vec![1, 2, 3, 4, 5]; // expected 8-bit result
-/// let got = convert::<5, 8>(&[0, 4, 1, 0, 6, 1, 0, 5]); // decode 5-bit data
+/// let got = bech32::bits::convert::<5, 8>(&[0, 4, 1, 0, 6, 1, 0, 5]); // decode 5-bit data
 /// assert_eq!(got, exp); // check 8-bit result
 /// # }
 /// ```
@@ -478,16 +468,19 @@ pub mod bits {
 
   /// Convert between 5-bit and 8-bit data.
   ///
+  /// # Generic Parameters
+  ///
+  /// - `SRC_BITS`: Input bit size (one of `5` or `8`).
+  /// - `DST_BITS`: Output bit size (one of `5` or `8`).
+  ///
   /// # Examples
   ///
   /// Encode 8-bit data as vector of 5-bit bytes:
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::bits::convert;
-  ///
   /// let exp = vec![0, 4, 1, 0, 6, 1, 0, 5]; // expected 5-bit result
-  /// let got = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode 8-bit data
+  /// let got = bech32::bits::convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode 8-bit data
   /// assert_eq!(got, exp); // check 5-bit result
   /// # }
   /// ```
@@ -496,10 +489,8 @@ pub mod bits {
   ///
   /// ```
   /// # fn main() {
-  /// use bech32::bits::convert;
-  ///
   /// let exp = vec![1, 2, 3, 4, 5]; // expected 8-bit result
-  /// let got = convert::<5, 8>(&[0, 4, 1, 0, 6, 1, 0, 5]); // decode 5-bit data
+  /// let got = bech32::bits::convert::<5, 8>(&[0, 4, 1, 0, 6, 1, 0, 5]); // decode 5-bit data
   /// assert_eq!(got, exp); // check 8-bit result
   /// # }
   /// ```
@@ -543,12 +534,12 @@ pub mod bits {
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{bits::convert, checksum::make, Hrp, Scheme};
+/// use bech32::{bits, checksum, Hrp, Scheme};
 ///
 /// let exp = b"wunxjs"; // expected checksum
 /// let hrp: Hrp = "a".parse()?; // parse HRP
-/// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
-/// let got = make(Scheme::Bech32, &hrp, data); // make checksum
+/// let data = bits::convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
+/// let got = checksum::make(Scheme::Bech32, &hrp, data); // make checksum
 /// assert_eq!(&got, exp); // verify checksum
 /// # Ok(())
 /// # }
@@ -558,12 +549,12 @@ pub mod bits {
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
-/// use bech32::{bits::convert, checksum::make, Hrp, Scheme};
+/// use bech32::{bits, checksum, Hrp, Scheme};
 ///
 /// let exp = b"mqr2hj"; // expected checksum
 /// let hrp: Hrp = "a".parse()?; // parse HRP
-/// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
-/// let got = make(Scheme::Bech32m, &hrp, data); // make checksum
+/// let data = bits::convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
+/// let got = checksum::make(Scheme::Bech32m, &hrp, data); // make checksum
 /// assert_eq!(&got, exp); // verify checksum
 /// # Ok(())
 /// # }
@@ -613,12 +604,12 @@ pub mod checksum {
   ///
   /// ```
   /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{bits::convert, checksum::make, Scheme};
+  /// use bech32::{bits, checksum, Scheme};
   ///
   /// let exp = b"wunxjs"; // expected checksum
   /// let hrp = "a".parse()?; // parse hrp
-  /// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
-  /// let got = make(Scheme::Bech32, &hrp, data); // make checksum
+  /// let data = bits::convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
+  /// let got = checksum::make(Scheme::Bech32, &hrp, data); // make checksum
   /// assert_eq!(&got, exp); // verify checksum
   /// # Ok(())
   /// # }
@@ -628,12 +619,12 @@ pub mod checksum {
   ///
   /// ```
   /// # fn main() -> Result<(), bech32::Err> {
-  /// use bech32::{bits::convert, checksum::make, Scheme};
+  /// use bech32::{bits, checksum, Scheme};
   ///
   /// let exp = b"mqr2hj"; // expected checksum
   /// let hrp = "a".parse()?; // parse hrp
-  /// let data = convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
-  /// let got = make(Scheme::Bech32m, &hrp, data); // make checksum
+  /// let data = bits::convert::<8, 5>(&[1, 2, 3, 4, 5]); // encode data
+  /// let got = checksum::make(Scheme::Bech32m, &hrp, data); // make checksum
   /// assert_eq!(&got, exp); // verify checksum
   /// # Ok(())
   /// # }
@@ -709,7 +700,14 @@ impl Constraints {
 
 /// Human-readable part (HRP) of [Bech32][] structure.
 ///
-/// **Note:** Always stored internally as lowercase.
+/// A valid HRP string must meet all following conditions:
+///
+/// - String length must be in the range `1..84`.
+/// - Must only contain [ASCII][] characters in the range `33..127`.
+/// - Must not contain a mixture of uppercase and lowercase alphabetic
+///   characters.
+///
+/// **Note:** Stored as lowercase.
 ///
 /// # Examples
 ///
@@ -779,6 +777,8 @@ impl Constraints {
 ///
 /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 ///   "Bech32 (BIP173)"
+/// [ascii]: https://en.wikipedia.org/wiki/ASCII
+///   "ASCII (Wikipedia)"
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Hrp(pub String);
 
@@ -816,12 +816,12 @@ impl std::fmt::Display for Hrp {
 
 /// Parsed [Bech32][] structure with raw 5-bit `data` field.
 ///
-/// Use the [`Bech32`] type instead to automatically encode and decode
-/// 8-bit data.
+/// Use [`Bech32`] instead to automatically encode and decode / 8-bit
+/// data.
 ///
 /// # Examples
 ///
-/// Parse [Bech32m][] string:
+/// Decode [Bech32m][] string as [`RawBech32`]:
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
@@ -837,7 +837,7 @@ impl std::fmt::Display for Hrp {
 /// # }
 /// ```
 ///
-/// Convert [`RawBech32`] to string:
+/// Encode [`RawBech32`] as string:
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
@@ -850,9 +850,9 @@ impl std::fmt::Display for Hrp {
 ///
 /// // populate structure
 /// let b = RawBech32 {
-///   scheme: Scheme::Bech32m,
-///   hrp: "a".parse()?,
-///   data: data,
+///   scheme: Scheme::Bech32m, // checksum scheme
+///   hrp: "a".parse()?, // human-readable part
+///   data: data, // 5-bit data
 /// };
 ///
 /// let got = b.to_string(); // convert to string
@@ -869,9 +869,9 @@ impl std::fmt::Display for Hrp {
 ///
 /// // expected result
 /// let exp = RawBech32 {
-///   scheme: Scheme::Bech32m,
-///   hrp: "a".parse()?,
-///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+///   scheme: Scheme::Bech32m, // checksum scheme
+///   hrp: "a".parse()?, // human-readable part
+///   data: vec![0, 4, 1, 0, 6, 1, 0, 5], // 5-bit data
 /// };
 ///
 /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
@@ -892,10 +892,13 @@ pub struct RawBech32 {
   /// Affects checksum encoding.
   pub scheme: Scheme,
 
-  /// Human-readable part
+  /// Human-readable part.
   ///
-  /// Human-readable string prefix containing alphanumeric ASCII
-  /// characters.
+  /// Human-readable prefix containing [ASCII][] characters in the range
+  /// `33..127`.
+  ///
+  /// [ascii]: https://en.wikipedia.org/wiki/ASCII
+  ///   "ASCII (Wikipedia)"
   pub hrp: Hrp,
 
   /// Raw 5-bit data
@@ -922,7 +925,7 @@ impl RawBech32 {
   ///
   /// # Example
   ///
-  /// Parse string using [`Scheme::Bech32m`]:
+  /// Decode string using [`Scheme::Bech32m`]:
   ///
   /// ```
   /// # fn main() -> Result<(), bech32::Err> {
@@ -930,9 +933,9 @@ impl RawBech32 {
   ///
   /// // expected result
   /// let exp = RawBech32 {
-  ///   scheme: Scheme::Bech32m,
-  ///   hrp: "a".parse()?,
-  ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+  ///   scheme: Scheme::Bech32m, // checksum scheme
+  ///   hrp: "a".parse()?, // human-readable part
+  ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5], // 5-bit data
   /// };
   ///
   /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
@@ -942,7 +945,7 @@ impl RawBech32 {
   /// # }
   /// ```
   ///
-  /// Parse string using [`Scheme::Bech32`]:
+  /// Decode string using [`Scheme::Bech32`]:
   ///
   /// ```
   /// # fn main() -> Result<(), bech32::Err> {
@@ -950,9 +953,9 @@ impl RawBech32 {
   ///
   /// // expected result
   /// let exp = RawBech32 {
-  ///   scheme: Scheme::Bech32,
-  ///   hrp: "a".parse()?,
-  ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+  ///   scheme: Scheme::Bech32, // checksum scheme
+  ///   hrp: "a".parse()?, // human-readable part
+  ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5], // 5-bit data
   /// };
   ///
   /// let s = "a1qypqxpq9wunxjs"; // bech32m string
@@ -962,8 +965,8 @@ impl RawBech32 {
   /// # }
   /// ```
   ///
-  /// Parse string using scheme auto-detection (equivalent to calling
-  /// [`str::parse()`]):
+  /// Decode string as [`RawBech32`] and auto-detect scheme (equivalent
+  /// to calling [`str::parse()`]):
   ///
   /// ```
   /// # fn main() -> Result<(), bech32::Err> {
@@ -971,9 +974,9 @@ impl RawBech32 {
   ///
   /// // expected result
   /// let exp = RawBech32 {
-  ///   scheme: Scheme::Bech32m,
-  ///   hrp: "a".parse()?,
-  ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5],
+  ///   scheme: Scheme::Bech32m, // checksum scheme
+  ///   hrp: "a".parse()?, // human-readable part
+  ///   data: vec![0, 4, 1, 0, 6, 1, 0, 5], // 5-bit data
   /// };
   ///
   /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
@@ -1060,7 +1063,7 @@ impl std::fmt::Display for RawBech32 {
 ///
 /// # Examples
 ///
-/// Parse [Bech32m][] string:
+/// Decode string as [`Bech32`]:
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
@@ -1076,7 +1079,7 @@ impl std::fmt::Display for RawBech32 {
 /// # }
 /// ```
 ///
-/// Convert [`Bech32`] to string:
+/// Encode [`Bech32`] as string:
 ///
 /// ```
 /// # fn main() -> Result<(), bech32::Err> {
@@ -1086,9 +1089,9 @@ impl std::fmt::Display for RawBech32 {
 ///
 /// // populate structure
 /// let b = Bech32 {
-///   scheme: Scheme::Bech32m,
-///   hrp: "a".parse()?,
-///   data: vec![1, 2, 3, 4, 5],
+///   scheme: Scheme::Bech32m, // checksum scheme
+///   hrp: "a".parse()?, // human-readable part
+///   data: vec![1, 2, 3, 4, 5], // 8-bit data
 /// };
 ///
 /// let got = b.to_string(); // convert to string
@@ -1105,9 +1108,9 @@ impl std::fmt::Display for RawBech32 {
 ///
 /// // expected result
 /// let exp = Bech32 {
-///   scheme: Scheme::Bech32m,
-///   hrp: "a".parse()?,
-///   data: vec![1, 2, 3, 4, 5],
+///   scheme: Scheme::Bech32m, // checksum scheme
+///   hrp: "a".parse()?, // human-readable part
+///   data: vec![1, 2, 3, 4, 5], // 8-bit data
 /// };
 ///
 /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
@@ -1130,8 +1133,11 @@ pub struct Bech32 {
 
   /// Human-readable part
   ///
-  /// Human-readable string prefix containing alphanumeric ASCII
-  /// characters.
+  /// Human-readable prefix containing [ASCII][] characters in the range
+  /// `33..127`.
+  ///
+  /// [ascii]: https://en.wikipedia.org/wiki/ASCII
+  ///   "ASCII (Wikipedia)"
   pub hrp: Hrp,
 
   /// 8-bit data
@@ -1139,7 +1145,7 @@ pub struct Bech32 {
 }
 
 impl Bech32 {
-  /// Parse string as [`Bech32`][] with given scheme.
+  /// Parse string as [`Bech32`] with given scheme.
   ///
   /// The difference between this function and [`str::parse()`] is that
   /// this function allows you to limit parsing to a particular scheme.
@@ -1149,7 +1155,7 @@ impl Bech32 {
   ///
   /// # Example
   ///
-  /// Parse string using [`Scheme::Bech32m`]:
+  /// Decode string using [`Scheme::Bech32m`]:
   ///
   /// ```
   /// # fn main() -> Result<(), bech32::Err> {
@@ -1157,9 +1163,9 @@ impl Bech32 {
   ///
   /// // expected result
   /// let exp = Bech32 {
-  ///   scheme: Scheme::Bech32m,
-  ///   hrp: "a".parse()?,
-  ///   data: vec![1, 2, 3, 4, 5],
+  ///   scheme: Scheme::Bech32m, // checksum scheme
+  ///   hrp: "a".parse()?, // human-readable part
+  ///   data: vec![1, 2, 3, 4, 5], // 8-bit data
   /// };
   ///
   /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
@@ -1169,7 +1175,7 @@ impl Bech32 {
   /// # }
   /// ```
   ///
-  /// Parse string using [`Scheme::Bech32`]:
+  /// Decode string using [`Scheme::Bech32`]:
   ///
   /// ```
   /// # fn main() -> Result<(), bech32::Err> {
@@ -1177,9 +1183,9 @@ impl Bech32 {
   ///
   /// // expected result
   /// let exp = Bech32 {
-  ///   scheme: Scheme::Bech32,
-  ///   hrp: "a".parse()?,
-  ///   data: vec![1, 2, 3, 4, 5],
+  ///   scheme: Scheme::Bech32, // checksum scheme
+  ///   hrp: "a".parse()?, // human-readable part
+  ///   data: vec![1, 2, 3, 4, 5], // 8-bit data
   /// };
   ///
   /// let s = "a1qypqxpq9wunxjs"; // bech32m string
@@ -1189,7 +1195,7 @@ impl Bech32 {
   /// # }
   /// ```
   ///
-  /// Parse string using scheme auto-detection (equivalent to calling
+  /// Decode string and auto-detect scheme (equivalent to calling
   /// [`str::parse()`]):
   ///
   /// ```
@@ -1198,9 +1204,9 @@ impl Bech32 {
   ///
   /// // expected result
   /// let exp = Bech32 {
-  ///   scheme: Scheme::Bech32m,
-  ///   hrp: "a".parse()?,
-  ///   data: vec![1, 2, 3, 4, 5],
+  ///   scheme: Scheme::Bech32m, // checksum scheme
+  ///   hrp: "a".parse()?, // human-readable part
+  ///   data: vec![1, 2, 3, 4, 5], // 8-bit data
   /// };
   ///
   /// let s = "a1qypqxpq9mqr2hj"; // bech32m string
