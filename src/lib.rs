@@ -77,8 +77,8 @@
 //     n/a, caught by chars::decode()
 // [-] test for short data part
 //     n/a, but will report MissingSeparator
-// [ ] use encode/decode wording everywhere
-// [ ] intro paragraph explaining bech32 and library
+// [x] use encode/decode wording everywhere
+// [x] intro paragraph explaining bech32 and library
 // [ ] rename to pbech32
 // [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
