@@ -11,3 +11,5 @@ name = "hello-world"
 [[example]]
 name = "encode"
 
+[[example]]
+name = "decode"
