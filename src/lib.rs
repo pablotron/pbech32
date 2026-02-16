@@ -286,6 +286,14 @@ pub enum Err {
   InvalidChecksum,
 }
 
+impl std::fmt::Display for Err {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    write!(f, "{:?}", self)
+  }
+}
+
+impl std::error::Error for Err {}
+
 /// [Bech32][] variant.
 ///
 /// [Bech32m][bip350] is identical to [Bech32][bip173] except that it
