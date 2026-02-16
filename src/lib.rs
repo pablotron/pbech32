@@ -464,10 +464,18 @@ mod chars {
 pub mod bits {
   /// Get output capacity (in bytes) needed for bit conversion.
   ///
+  /// # Parameters
+  ///
+  /// - `len`: Input length, in bytes.
+  ///
   /// # Generic Parameters
   ///
   /// - `SRC_BITS`: Input bit size (one of `5` or `8`).
   /// - `DST_BITS`: Output bit size (one of `5` or `8`).
+  ///
+  /// # Returns
+  ///
+  /// Needed output capacity, in bytes.
   pub(crate) fn capacity<
     const SRC_BITS: usize, // input bit size (5 or 8)
     const DST_BITS: usize, // output bit size (5 or 8)
@@ -475,7 +483,10 @@ pub mod bits {
     SRC_BITS * len / DST_BITS + ((len % DST_BITS) != 0) as usize
   }
 
-  /// Convert 5 8-bit bytes to 8 5-bit bytes.
+  /// Convert a slice of five 8-bit bytes into an array of eight 5-bit
+  /// bytes.
+  ///
+  /// Used by [`Encoder::flush_buf()`].
   pub(crate) fn convert_block(b: &[u8]) -> [u8; 8] {
     [
       b[0] >> 3,
