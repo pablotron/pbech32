@@ -462,34 +462,31 @@ mod chars {
 /// # }
 /// ```
 pub mod bits {
-  /// Get capacity needed for bit conversion.
+  /// Get output capacity (in bytes) needed for bit conversion.
   ///
   /// # Generic Parameters
   ///
   /// - `SRC_BITS`: Input bit size (one of `5` or `8`).
   /// - `DST_BITS`: Output bit size (one of `5` or `8`).
-  fn capacity<
+  pub(crate) fn capacity<
     const SRC_BITS: usize, // input bit size (5 or 8)
     const DST_BITS: usize, // output bit size (5 or 8)
   >(len: usize) -> usize {
-    SRC_BITS * len / DST_BITS + match (SRC_BITS, DST_BITS, len % DST_BITS) {
-      (8, 5, 0) => 0,
-      (8, 5, 1) => 1,
-      (8, 5, 2) => 2,
-      (8, 5, 3) => 2,
-      (8, 5, 4) => 3,
+    SRC_BITS * len / DST_BITS + ((len % DST_BITS) != 0) as usize
+  }
 
-      (5, 8, 0) => 0,
-      (5, 8, 1) => 1,
-      (5, 8, 2) => 2,
-      (5, 8, 3) => 2,
-      (5, 8, 4) => 3,
-      (5, 8, 5) => 4,
-      (5, 8, 6) => 4,
-      (5, 8, 7) => 5,
-
-      _ => unreachable!(),
-    }
+  /// Convert 5 8-bit bytes to 8 5-bit bytes.
+  pub(crate) fn convert_block(b: &[u8]) -> [u8; 8] {
+    [
+      b[0] >> 3,
+      ((b[0] & 7) << 2) | (b[1] >> 6),
+      (b[1] >> 1) & 0x1f,
+      ((b[1] & 1) << 4) | (b[2] >> 4),
+      ((b[2] & 0xf) << 1) | (b[3] >> 7),
+      (b[3] >> 2) & 0x1f,
+      ((b[3] & 3) << 3) | (b[4] >> 5),
+      b[4] & 0x1f,
+    ]
   }
 
   /// Convert between 5-bit and 8-bit data.
@@ -603,7 +600,7 @@ pub mod checksum {
   /// Encode checksum as 6-byte array.
   ///
   /// Called by [`make()`].
-  fn encode(sum: u32) -> [u8; 6] {
+  pub(crate) fn encode(sum: u32) -> [u8; 6] {
     core::array::from_fn(|i| {
       chars::LUT[((sum as usize) >> (5 * (5 - i))) & 0x1f] as u8
     })
@@ -612,7 +609,7 @@ pub mod checksum {
   /// Update checksum `sum` with 5-bit value `val`.
   ///
   /// **Note:** Only absorbs the bottom 5 bits of value.
-  fn polymod(mut sum: u32, val: u8) -> u32 {
+  pub(crate) fn polymod(mut sum: u32, val: u8) -> u32 {
     // assert_eq!(val & !0x1f, 0); // check upper bits
     let t = sum >> 25; // get bits 25..30
     sum = ((sum & 0x1ffffff) << 5) | ((val & 0x1f) as u32); // absorb bits
