@@ -1298,6 +1298,155 @@ impl std::fmt::Display for Bech32 {
   }
 }
 
+/// Streaming encoder which [Bech32][]-encodes data and writes it to a
+/// destination stream.
+///
+/// The destination stream can be anything that implements the
+/// [`std::io::Write`] trait. Examples: [`Vec<u8>`], [`std::fs::File`],
+/// etc.
+///
+/// **Note:** You *must* `flush()` the encoder when you have finished
+/// writing data or the encoded checksum will not be written to the
+/// output stream.
+///
+/// # Example
+///
+/// Wrap a [`Vec<u8>`] and encode a string to it:
+///
+/// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// use std::io::Write;
+/// use pbech32::{Encoder, Hrp, Scheme};
+///
+/// let mut vec: Vec<u8> = Vec::new(); // output vector
+/// let hrp: Hrp = "hello".parse()?; // human readable part
+/// let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
+/// encoder.write_all(b"folks")?; // write data
+/// encoder.flush()?; // flush encoder
+///
+/// let got = str::from_utf8(vec.as_ref())?; // convert to string
+/// assert_eq!(got, "hello1vehkc6mn27xpct"); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+///   "Bech32 (BIP173)"
+pub struct Encoder<W: std::io::Write> {
+  scheme: Scheme, // checksum scheme
+  sum: u32, // checksum
+  buf: Vec<u8>, // fixed-size internal buffer (5 bytes)
+  done: bool, // is encoder done?
+  inner: W, // inner writer
+}
+
+impl<W: std::io::Write> Encoder<W> {
+  /// Create streaming encoder.
+  ///
+  /// # Parameters
+  ///
+  /// - `inner`: Wrapped writer
+  /// - `scheme`: Checksum scheme
+  /// - `hrp`: Human-readable part
+  ///
+  /// # Example
+  ///
+  /// TODO
+  pub fn new(mut inner: W, scheme: Scheme, hrp: Hrp) -> std::io::Result<Self> {
+    // init checksum and absorb hrp
+    let mut sum = hrp.0.bytes().fold(1, |r, b| checksum::polymod(r, b >> 5)); // high bits
+    sum = checksum::polymod(sum, 0); // delimiter (one zero)
+    sum = hrp.0.bytes().fold(sum, |r, b| checksum::polymod(r, b & 0x1f)); // low bits
+
+    write!(inner, "{hrp}1")?; // write hrp and separator to inner writer
+    Ok(Self { inner, scheme, sum, done: false, buf: Vec::<u8>::with_capacity(5) })
+  }
+
+  /// Write bytes to inner writer.
+  fn inner_write(&mut self, buf: &[u8]) -> std::io::Result<()> {
+    if !self.done && let Err(err) = self.inner.write_all(buf) {
+      self.done = true; // inner write failed; mark as done
+      return Err(err); // return error
+    }
+
+    Ok(()) // return success
+  }
+
+  /// Flush internal buffer to inner writer.
+  fn flush_buf(&mut self) -> std::io::Result<()> {
+    assert!(self.buf.len() <= 5);
+
+    // get number of chars to write to inner writer
+    // for a full 5 byte buffer this will be 8 bytes.
+    let c_len: usize = bits::capacity::<8, 5>(self.buf.len());
+    assert!(c_len <= 8, "c_len = {c_len}");
+
+    // if internal buffer is not full then pad it with zeros
+    while self.buf.len() < 5 {
+      self.buf.push(0);
+    }
+
+    // encode internal buffer as block of 8 5-bit bytes, then clear it
+    let data = bits::convert_block(self.buf.as_slice()); // encode
+    self.buf.clear(); // clear buffer
+
+    // absorb block into checksum, bech32-encode the block as 8 chars,
+    // then write `c_len` bech32-encoded chars to the internal writer
+    self.sum = (0..c_len).fold(self.sum, |r, i| checksum::polymod(r, data[i])); // absorb
+    let c: [u8; 8] = core::array::from_fn(|i| chars::LUT[data[i] as usize] as u8);
+    self.inner_write(&c[..c_len])?; // absorb bech32-encoded chars
+
+    Ok(()) // return success
+  }
+}
+
+impl<W: std::io::Write> std::io::Write for Encoder<W> {
+  fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+    if self.done {
+      return Ok(0); // stop if encoder is done
+    }
+
+    for b in buf.iter() {
+      self.buf.push(*b); // append to internal buffer
+
+      if self.buf.len() == 5 {
+        // internal buffer is full; flush it
+        self.flush_buf()?;
+      }
+    }
+
+    Ok(buf.len()) // return success
+  }
+
+  fn flush(&mut self) -> std::io::Result<()> {
+    if self.done {
+      return Ok(()); // stop if encoder is done
+    }
+
+    if !self.buf.is_empty() {
+      // flush remaining bytes from internal buffer
+      self.flush_buf()?;
+    }
+
+    // finalize and write checksum
+    self.sum = (0..6).fold(self.sum, |r, _| checksum::polymod(r, 0)); // absorb 6 zeros
+    let c = checksum::encode(self.sum ^ self.scheme.checksum_mask()); // encode checksum
+    self.inner_write(&c)?; // write encoded checksum
+
+    self.done = true; // mark as done
+    Ok(()) // return success
+  }
+}
+
+// impl<W: stdio::io::Write> Drop for Encoder<W_> {
+//   fn drop(&mut self) {
+//     match self.flush() {
+//       Ok(() => return,
+//       Err(err) => ??
+//     }
+//   }
+// }
+
 #[cfg(test)]
 mod tests {
   mod chars {
@@ -1700,6 +1849,80 @@ mod tests {
       for (s, exp) in tests {
         let got: Bech32 = s.parse().expect(s);
         assert_eq!(got, exp, "{s}: {got} != {exp}");
+      }
+    }
+  }
+
+  mod encoder {
+    use super::super::*;
+    use std::io::Write;
+
+    #[test]
+    fn test_write_and_flush() {
+      let tests = vec![(
+        Scheme::Bech32m,
+        "a",
+        b"".to_vec(),
+        "a1lqfn3a",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"a".to_vec(),
+        "a1vyv2rgae",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"ab".to_vec(),
+        "a1v93qw2fnlx",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"abc".to_vec(),
+        "a1v93xx3s7l23",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"abcd".to_vec(),
+        "a1v93xxeq4gxvyc",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"abcde".to_vec(),
+        "a1v93xxer9zche3p",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"abcdef".to_vec(),
+        "a1v93xxer9vczn72zl",
+      ), (
+        Scheme::Bech32m,
+        "ab",
+        b"cdef".to_vec(),
+        "ab1vdjx2es7ryzmh",
+      ), (
+        Scheme::Bech32m,
+        "hello",
+        b"folks".to_vec(),
+        "hello1vehkc6mn27xpct",
+      ), (
+        Scheme::Bech32m,
+        "blum",
+        b"flub".to_vec(),
+        "blum1vek82cskf3qwx",
+      ), (
+        Scheme::Bech32m,
+        "foo",
+        b"bar".to_vec(),
+        "foo1vfshy2dnlu3",
+      )];
+
+      for (scheme, hrp, data, exp) in tests {
+        let hrp: Hrp = hrp.parse().unwrap();
+        let mut got: Vec<u8> = Vec::new();
+        let mut e = Encoder::new(&mut got, scheme, hrp).unwrap();
+        e.write_all(data.as_slice()).unwrap();
+        e.flush().unwrap(); // flush encoder
+        assert_eq!(str::from_utf8(&got).unwrap(), exp);
       }
     }
   }
