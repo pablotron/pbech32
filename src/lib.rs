@@ -139,7 +139,7 @@
 /// # fn main() {
 /// use pbech32::{Bech32, Err};
 /// let s = "a 1xxxxxx"; // string with invalid bech32 character
-/// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChar));
+/// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChar(1)));
 /// # }
 /// ```
 ///
@@ -172,19 +172,20 @@ pub enum Err {
   ///   "Bech32 (BIP173)"
   InvalidLen,
 
-  /// String contains an invalid character.
+  /// String contains an invalid character at the given position.
   ///
-  /// A [Bech32][] string must only contain alphanumeric [ASCII][] characters.
+  /// A [Bech32][] string must only contain alphanumeric [ASCII][]
+  /// characters.
   ///
   /// # Example
   ///
-  /// Try to parse a string with an invalid character:
+  /// Try to parse a string with an invalid character at position 1:
   ///
   /// ```
   /// # fn main() {
   /// use pbech32::{Bech32, Err};
   /// let s = "a 1xxxxxx"; // string with invalid bech32 character
-  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChar));
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChar(1)));
   /// # }
   /// ```
   ///
@@ -192,7 +193,7 @@ pub enum Err {
   ///   "ASCII (Wikipedia)"
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
   ///   "Bech32 (BIP173)"
-  InvalidChar,
+  InvalidChar(usize),
 
   /// String contains mixed uppercase and lowercase characters.
   ///
@@ -726,8 +727,8 @@ impl Constraints {
     }
 
     // check for invalid chars (e.g. c != 33..127)
-    if !s.chars().all(|c| c.is_ascii_graphic()) {
-      return Err(Err::InvalidChar);
+    if let Some((pos, _)) = s.chars().enumerate().find(|(_, c)| !c.is_ascii_graphic()) {
+      return Err(Err::InvalidChar(pos));
     }
 
     // check for mixed case
@@ -1048,8 +1049,8 @@ impl RawBech32 {
 
     // decode data
     let mut data: Vec<u8> = Vec::with_capacity(enc.len());
-    for c in enc.chars() {
-      data.push(chars::decode(c).ok_or(Err::InvalidChar)?);
+    for (pos, c) in enc.chars().enumerate() {
+      data.push(chars::decode(c).ok_or(Err::InvalidChar(pos))?);
     }
 
     // get ordered list of checksum schemes
@@ -1629,7 +1630,7 @@ mod tests {
         "invalid char",
         Constraints { range: (1, Some(5)), error: Err::InvalidLen },
         "a a",
-        Err::InvalidChar,
+        Err::InvalidChar(1),
       )];
 
       for (name, c, s, exp) in tests {
@@ -1665,7 +1666,7 @@ mod tests {
       let tests = vec![
         ("", Err::InvalidHrpLen),
         (&long_str, Err::InvalidHrpLen),
-        ("a b", Err::InvalidChar),
+        ("a b", Err::InvalidChar(1)),
         ("Ab", Err::MixedCase),
       ];
 
