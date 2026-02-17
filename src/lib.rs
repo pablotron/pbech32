@@ -177,6 +177,9 @@ pub enum Err {
   /// A [Bech32][] string must only contain alphanumeric [ASCII][]
   /// characters.
   ///
+  /// The field value of this error indicates the position of the first
+  /// invalid character in the string.
+  ///
   /// # Example
   ///
   /// Try to parse a string with an invalid character at position 1:
@@ -195,27 +198,31 @@ pub enum Err {
   ///   "Bech32 (BIP173)"
   InvalidChar(usize),
 
-  /// String contains mixed uppercase and lowercase characters.
+  /// String contains both uppercase and lowercase characters.
   ///
   /// A [Bech32][] string must not contain both uppercase and lowercase
   /// characters.
   ///
+  /// The fields values of this error indicate the position of the
+  /// first lowercase character and the position of the first uppercase
+  /// character in the string, respectively.
+  ///
   /// # Example
   ///
-  /// Try to parse a string with both uppercase and lowercase
-  /// characters:
+  /// Try to parse a string with an lowercase character at position 0
+  /// and an uppercase character at position 1:
   ///
   /// ```
   /// # fn main() {
   /// use pbech32::{Bech32, Err};
   /// let s = "Ab1xxxxxx"; // string with mixed-case characters
-  /// assert_eq!(s.parse::<Bech32>(), Err(Err::MixedCase));
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::MixedCase(1, 0)));
   /// # }
   /// ```
   ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
   ///   "Bech32 (BIP173)"
-  MixedCase,
+  MixedCase(usize, usize),
 
   /// String is missing a separator character.
   ///
@@ -732,10 +739,10 @@ impl Constraints {
     }
 
     // check for mixed case
-    let has_lower = s.chars().any(|c| c.is_ascii_lowercase());
-    let has_upper = s.chars().any(|c| c.is_ascii_uppercase());
-    if has_lower && has_upper {
-      return Err(Err::MixedCase);
+    let lower = s.chars().enumerate().find(|(_, c)| c.is_ascii_lowercase());
+    let upper = s.chars().enumerate().find(|(_, c)| c.is_ascii_uppercase());
+    if let Some((lower_pos, _)) = lower && let Some((upper_pos, _)) = upper {
+      return Err(Err::MixedCase(lower_pos, upper_pos));
     }
 
     Ok(())
@@ -815,7 +822,7 @@ impl Constraints {
 ///
 /// let s = "FOObar"; // mixed-case string
 /// let got = s.parse::<Hrp>(); // parse string
-/// assert_eq!(got, Err(Err::MixedCase)); // check result
+/// assert_eq!(got, Err(Err::MixedCase(3, 0))); // check result
 /// # }
 /// ```
 ///
@@ -1625,7 +1632,7 @@ mod tests {
         "mixed case",
         Constraints { range: (1, Some(5)), error: Err::InvalidLen },
         "Aa",
-        Err::MixedCase,
+        Err::MixedCase(1, 0),
       ), (
         "invalid char",
         Constraints { range: (1, Some(5)), error: Err::InvalidLen },
@@ -1667,7 +1674,7 @@ mod tests {
         ("", Err::InvalidHrpLen),
         (&long_str, Err::InvalidHrpLen),
         ("a b", Err::InvalidChar(1)),
-        ("Ab", Err::MixedCase),
+        ("Ab", Err::MixedCase(1, 0)),
       ];
 
       for (s, exp) in tests {
