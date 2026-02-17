@@ -112,7 +112,9 @@
 // [x] rename to pbech32
 // [x] bug: scheme: bech32m, hrp: "hi", data: "folks"
 // [x] increase/remove MAX_LEN (4k?)
-// [ ] streaming/no-alloc api
+// [x] streaming/no-alloc api
+// [ ] impl Drop for Encoder
+// [ ] find possible errors
 // [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
@@ -1438,6 +1440,7 @@ impl<W: std::io::Write> std::io::Write for Encoder<W> {
   }
 }
 
+// TODO
 // impl<W: stdio::io::Write> Drop for Encoder<W_> {
 //   fn drop(&mut self) {
 //     match self.flush() {
