@@ -1326,20 +1326,20 @@ impl std::fmt::Display for Bech32 {
   }
 }
 
-/// Streaming encoder which [Bech32][]-encodes data and writes it to a
-/// destination stream.
+/// Stream [Bech32][]-encoded data to a [writer][] without allocation.
 ///
-/// The destination stream can be anything that implements the
-/// [`std::io::Write`] trait. Examples: [`Vec<u8>`], [`std::fs::File`],
-/// etc.
+/// Writing to an [`Encoder`] can be done iteratively.
+///
+/// The destination [writer][] can be anything that implements
+/// [`std::io::Write`].  Examples: [`Vec<u8>`], [`std::fs::File`],
+/// [`std::net::TcpStream`], etc.
 ///
 /// **Note:** You *must* `flush()` the encoder when you have finished
-/// writing data or the encoded checksum will not be written to the
-/// output stream.
+/// writing data or the output will be incomplete.
 ///
-/// # Example
+/// # Examples
 ///
-/// Wrap a [`Vec<u8>`] and encode a string to it:
+/// Encode to a [`Vec<u8>`]:
 ///
 /// ```
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -1350,7 +1350,7 @@ impl std::fmt::Display for Bech32 {
 /// let hrp: Hrp = "hello".parse()?; // human readable part
 /// let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
 /// encoder.write_all(b"folks")?; // write data
-/// encoder.flush()?; // flush encoder
+/// encoder.flush()?; // flush encoder (REQUIRED)
 ///
 /// let got = str::from_utf8(vec.as_ref())?; // convert to string
 /// assert_eq!(got, "hello1vehkc6mn27xpct"); // check result
@@ -1358,6 +1358,29 @@ impl std::fmt::Display for Bech32 {
 /// # }
 /// ```
 ///
+/// Iteratively encode to a [`Vec<u8>`]:
+///
+/// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// use std::io::Write;
+/// use pbech32::{Encoder, Hrp, Scheme};
+///
+/// let mut vec: Vec<u8> = Vec::new(); // output vector
+/// let hrp: Hrp = "hi".parse()?; // human readable part
+/// let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
+/// for chunk in vec![b"foo", b"bar", b"baz"] {
+///   encoder.write_all(chunk)?; // write chunk
+/// }
+/// encoder.flush()?; // flush encoder (REQUIRED)
+///
+/// let got = str::from_utf8(vec.as_ref())?; // convert to string
+/// assert_eq!(got, "hi1vehk7cnpwf3xz7skgej7x"); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// [writer]: `std::io::Write`
+///   "writer"
 /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 ///   "Bech32 (BIP173)"
 pub struct Encoder<W: std::io::Write> {
@@ -1373,7 +1396,7 @@ impl<W: std::io::Write> Encoder<W> {
   ///
   /// # Parameters
   ///
-  /// - `inner`: Wrapped writer
+  /// - `inner`: Wrapped [writer][`std::io::Write`]
   /// - `scheme`: Checksum scheme
   /// - `hrp`: Human-readable part
   ///
