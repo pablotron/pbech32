@@ -152,7 +152,7 @@ pub enum Err {
   /// The length of a [Bech32][] string must be in the range `8..`.
   ///
   /// **Note:** [BIP173][] limits the maximum string length to 90
-  /// characters,
+  /// characters; this library does not have a maximum string length.
   ///
   /// # Examples
   ///
