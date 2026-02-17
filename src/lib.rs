@@ -1479,6 +1479,26 @@ impl<W: std::io::Write> std::io::Write for Encoder<W> {
 
 #[cfg(test)]
 mod tests {
+  mod err {
+    use super::super::Err;
+
+    #[test]
+    fn test_display_fmt() {
+      let tests = vec![
+        (Err::InvalidLen(1234), "invalid length: 1234"),
+        (Err::InvalidChar(6789), "invalid character at position 6789"),
+        (Err::MixedCase(1, 2), "mixed-case characters at positions (1, 2)"),
+        (Err::MissingSeparator, "missing separator"),
+        (Err::InvalidHrpLen(3141), "invalid human-readable part length: 3141"),
+        (Err::InvalidChecksum, "invalid checksum"),
+      ];
+
+      for (err, exp) in tests {
+        assert_eq!(err.to_string(), exp, "{exp}");
+      }
+    }
+  }
+
   mod chars {
     use super::super::chars;
 
