@@ -1440,12 +1440,13 @@ impl<W: std::io::Write> std::io::Write for Encoder<W> {
   }
 }
 
-// TODO
-// impl<W: stdio::io::Write> Drop for Encoder<W_> {
+// TODO: uncommenting this causes a immutable borrow error in the tests
+// impl<W: std::io::Write> Drop for Encoder<W> {
+//   use std::io::Write;
+//
 //   fn drop(&mut self) {
 //     match self.flush() {
-//       Ok(() => return,
-//       Err(err) => ??
+//       _ => return, // ignores error
 //     }
 //   }
 // }
