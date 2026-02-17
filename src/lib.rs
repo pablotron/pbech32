@@ -130,7 +130,7 @@
 /// # fn main() {
 /// use pbech32::{Bech32, Err};
 /// let s = ""; // empty string
-/// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
+/// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen(0)));
 /// # }
 /// ```
 ///
@@ -152,6 +152,8 @@ pub enum Err {
   ///
   /// The length of a [Bech32][] string must be in the range `8..`.
   ///
+  /// The error field contains the invalid length.
+  ///
   /// **Note:** [BIP173][] limits the maximum string length to 90
   /// characters; this library does not have a maximum string length.
   ///
@@ -163,7 +165,7 @@ pub enum Err {
   /// # fn main() {
   /// use pbech32::{Bech32, Err};
   /// let s = ""; // empty string
-  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen));
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidLen(0)));
   /// # }
   /// ```
   ///
@@ -171,15 +173,15 @@ pub enum Err {
   ///   "Bech32 (BIP173)"
   /// [bip173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
   ///   "Bech32 (BIP173)"
-  InvalidLen,
+  InvalidLen(usize),
 
   /// String contains an invalid character at the given position.
   ///
   /// A [Bech32][] string must only contain alphanumeric [ASCII][]
   /// characters.
   ///
-  /// The field value of this error indicates the position of the first
-  /// invalid character in the string.
+  /// The error field indicates the first invalid character position in
+  /// the string.
   ///
   /// # Example
   ///
@@ -204,9 +206,9 @@ pub enum Err {
   /// A [Bech32][] string must not contain both uppercase and lowercase
   /// characters.
   ///
-  /// The fields values of this error indicate the position of the
-  /// first lowercase character and the position of the first uppercase
-  /// character in the string, respectively.
+  /// The error fields indicate the first lowercase character position
+  /// and in the string the first uppercase character position in the
+  /// string, respectively.
   ///
   /// # Example
   ///
@@ -252,6 +254,8 @@ pub enum Err {
   /// The length of the human-readable part of a [Bech32][] string must
   /// be in the range `[1..84]`.
   ///
+  /// The error field contains the invalid human-readable part length.
+  ///
   /// # Examples
   ///
   /// Try to parse a string with an empty human-readable part:
@@ -260,7 +264,7 @@ pub enum Err {
   /// # fn main() {
   /// use pbech32::{Bech32, Err};
   /// let s = "1axxxxxx"; // string with empty HRP
-  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidHrpLen));
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidHrpLen(0)));
   /// # }
   /// ```
   ///
@@ -270,13 +274,13 @@ pub enum Err {
   /// # fn main() {
   /// use pbech32::{Bech32, Err};
   /// let s = str::repeat("a", 84) + "1xxxxxx"; // string with long HRP
-  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidHrpLen));
+  /// assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidHrpLen(84)));
   /// # }
   /// ```
   ///
   /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
   ///   "Bech32 (BIP173)"
-  InvalidHrpLen,
+  InvalidHrpLen(usize),
 
   /// Invalid checksum.
   ///
@@ -300,11 +304,11 @@ pub enum Err {
 impl std::fmt::Display for Err {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     match self {
-      Err::InvalidLen => write!(f, "invalid length"),
+      Err::InvalidLen(len) => write!(f, "invalid length: {len}"),
       Err::InvalidChar(pos) => write!(f, "invalid character at position {pos}"),
       Err::MixedCase(l, h) => write!(f, "mixed-case characters at positions ({l}, {h})"),
       Err::MissingSeparator => write!(f, "missing separator"),
-      Err::InvalidHrpLen => write!(f, "invalid human-readable part (HRP) length"),
+      Err::InvalidHrpLen(len) => write!(f, "invalid human-readable part length: {len}"),
       Err::InvalidChecksum => write!(f, "invalid checksum"),
     }
   }
@@ -738,7 +742,12 @@ impl Constraints {
 
     // check string length
     if !valid_length {
-      return Err(self.error);
+      // invalid length; populate length field of error and return it
+      return Err(match self.error {
+        Err::InvalidLen(_) => Err::InvalidLen(s.len()),
+        Err::InvalidHrpLen(_) => Err::InvalidHrpLen(s.len()),
+        _ => unreachable!(),
+      })
     }
 
     // check for invalid chars (e.g. c != 33..127)
@@ -845,7 +854,7 @@ impl Hrp {
   /// hrp string constraints
   const CONSTRAINTS: Constraints = Constraints {
     range: (1, Some(84)), // max 83 from BIP173
-    error: Err::InvalidHrpLen,
+    error: Err::InvalidHrpLen(0),
   };
 }
 
@@ -971,7 +980,7 @@ impl RawBech32 {
   /// bech32 string constraints
   const CONSTRAINTS: Constraints = Constraints {
     range: (8, None), // NOTE: BIP173 max is 91.
-    error: Err::InvalidLen,
+    error: Err::InvalidLen(0),
   };
 
   /// Parse string as [`RawBech32`][] with given scheme.
@@ -1607,10 +1616,10 @@ mod tests {
     #[test]
     fn test_pass() {
       let tests = vec![(
-        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen(0) },
         "a",
       ), (
-        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen(0) },
         "A",
       )];
 
@@ -1623,27 +1632,27 @@ mod tests {
     fn test_fail() {
       let tests = vec![(
         "empty",
-        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen(0) },
         "",
-        Err::InvalidLen,
+        Err::InvalidLen(0),
       ), (
         "long",
-        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen(0) },
         "aaaaa",
-        Err::InvalidLen,
+        Err::InvalidLen(5),
       ), (
         "long, custom error",
-        Constraints { range: (1, Some(5)), error: Err::InvalidHrpLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidHrpLen(0) },
         "aaaaa",
-        Err::InvalidHrpLen,
+        Err::InvalidHrpLen(5),
       ), (
         "mixed case",
-        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen(0) },
         "Aa",
         Err::MixedCase(1, 0),
       ), (
         "invalid char",
-        Constraints { range: (1, Some(5)), error: Err::InvalidLen },
+        Constraints { range: (1, Some(5)), error: Err::InvalidLen(0) },
         "a a",
         Err::InvalidChar(1),
       )];
@@ -1679,8 +1688,8 @@ mod tests {
     fn test_from_str_fail() {
       let long_str = str::repeat("x", 85);
       let tests = vec![
-        ("", Err::InvalidHrpLen),
-        (&long_str, Err::InvalidHrpLen),
+        ("", Err::InvalidHrpLen(0)),
+        (&long_str, Err::InvalidHrpLen(long_str.len())),
         ("a b", Err::InvalidChar(1)),
         ("Ab", Err::MixedCase(1, 0)),
       ];
