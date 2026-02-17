@@ -113,7 +113,8 @@
 // [x] bug: scheme: bech32m, hrp: "hi", data: "folks"
 // [x] increase/remove MAX_LEN (4k?)
 // [x] streaming/no-alloc api
-// [ ] impl Drop for Encoder
+// [-] impl Drop for Encoder
+//     n/a: causes mutable borrow errors in tests
 // [ ] find possible errors
 // [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
