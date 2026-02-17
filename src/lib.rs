@@ -298,7 +298,14 @@ pub enum Err {
 
 impl std::fmt::Display for Err {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    write!(f, "{:?}", self)
+    match self {
+      Err::InvalidLen => write!(f, "invalid length"),
+      Err::InvalidChar(pos) => write!(f, "invalid character at position {pos}"),
+      Err::MixedCase(l, h) => write!(f, "mixed-case characters at positions ({l}, {h})"),
+      Err::MissingSeparator => write!(f, "missing separator"),
+      Err::InvalidHrpLen => write!(f, "invalid human-readable part (HRP) length"),
+      Err::InvalidChecksum => write!(f, "invalid checksum"),
+    }
   }
 }
 
