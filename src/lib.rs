@@ -21,9 +21,10 @@
 //! # Library Features
 //!
 //! - [Bech32 (BIP173)][bip173] and [Bech32m (BIP350)][bip350] support.
-//! - Idiomatic encoding and decoding via the [`std::fmt::Display`]
-//!   and [`std::str::FromStr`] traits.
-//! - Decode arbitrary long strings.
+//! - Idiomatic encoding and decoding via the [`Display`][`std::fmt::Display`]
+//!   and [`FromStr`][`std::str::FromStr`] traits.
+//! - Decode arbitrarily long strings.
+//! - Streaming [encoder][`Encoder`].
 //! - No external dependencies.
 //!
 //! # Examples
@@ -91,6 +92,8 @@
 //!   "BCH code (Wikipedia)"
 //! [alphabet]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki#bech32
 //!   "BIP173: Specification: Bech32"
+//! [writer]: `std::io::Write`
+//!   "writer"
 
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
