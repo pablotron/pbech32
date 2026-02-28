@@ -74,6 +74,26 @@
 //! # }
 //! ```
 //!
+//! Encode to a [writer][]:
+//!
+//! ```
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! use std::io::Write;
+//! use pbech32::{Encoder, Hrp, Scheme};
+//!
+//! let mut vec: Vec<u8> = Vec::new(); // output vector
+//! let hrp: Hrp = "hello".parse()?; // human readable part
+//!
+//! let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
+//! encoder.write_all(b"folks")?; // write data
+//! encoder.flush()?; // flush encoder (REQUIRED)
+//!
+//! let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
+//! assert_eq!(got, "hello1vehkc6mn27xpct"); // check result
+//! # Ok(())
+//! # }
+//! ```
+//!
 //! [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 //!   "Bech32 (BIP173)"
 //! [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
