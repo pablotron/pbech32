@@ -13,3 +13,6 @@ name = "encode"
 
 [[example]]
 name = "decode"
+
+[[example]]
+name = "stream"
