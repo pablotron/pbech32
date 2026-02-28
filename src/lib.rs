@@ -1354,8 +1354,8 @@ impl std::fmt::Display for Bech32 {
 /// Writing to an [`Encoder`] can be done iteratively.
 ///
 /// The destination [writer][] can be anything that implements
-/// [`std::io::Write`].  Examples: [`Vec<u8>`], [`std::fs::File`],
-/// [`std::net::TcpStream`], etc.
+/// [`Write`][writer].  Examples: [`Vec<u8>`], [`File`][`std::fs::File`],
+/// [`TcpStream`][`std::net::TcpStream`], etc.
 ///
 /// **Note:** You *must* `flush()` the encoder when you have finished
 /// writing data or the output will be incomplete.
@@ -1371,11 +1371,12 @@ impl std::fmt::Display for Bech32 {
 ///
 /// let mut vec: Vec<u8> = Vec::new(); // output vector
 /// let hrp: Hrp = "hello".parse()?; // human readable part
+///
 /// let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
 /// encoder.write_all(b"folks")?; // write data
 /// encoder.flush()?; // flush encoder (REQUIRED)
 ///
-/// let got = str::from_utf8(vec.as_ref())?; // convert to string
+/// let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
 /// assert_eq!(got, "hello1vehkc6mn27xpct"); // check result
 /// # Ok(())
 /// # }
@@ -1390,13 +1391,14 @@ impl std::fmt::Display for Bech32 {
 ///
 /// let mut vec: Vec<u8> = Vec::new(); // output vector
 /// let hrp: Hrp = "hi".parse()?; // human readable part
+///
 /// let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
 /// for chunk in vec![b"foo", b"bar", b"baz"] {
 ///   encoder.write_all(chunk)?; // write chunk
 /// }
 /// encoder.flush()?; // flush encoder (REQUIRED)
 ///
-/// let got = str::from_utf8(vec.as_ref())?; // convert to string
+/// let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
 /// assert_eq!(got, "hi1vehk7cnpwf3xz7skgej7x"); // check result
 /// # Ok(())
 /// # }
