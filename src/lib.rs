@@ -138,9 +138,10 @@
 // [x] streaming/no-alloc api
 // [-] impl Drop for Encoder
 //     n/a: causes mutable borrow errors in tests
+// [-] use AsRef<str> for make() hrp param?
+//     n/a: utility method
 // [ ] crate docs: add note about error fields
 // [ ] find possible error positions in string
-// [ ] use AsRef<str> for make() hrp param?
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
 
