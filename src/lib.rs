@@ -1,13 +1,14 @@
 //! [Bech32][] encoding and decoding library.
 //!
-//! [Bech32][] is a [checksummed][checksum] [base 32][] encoding format
-//! that is fast and user-friendly.  [Bech32m][] is an update to
-//! [Bech32][] with an improved [checksum][] algorithm.
+//! [Bech32][] is a fast and user-friendly [base 32][] encoding format
+//! that includes a [namespace][] and [checksum][].  [Bech32m][] is an
+//! update to [Bech32][] with an improved [checksum][] algorithm.
 //!
-//! A [Bech32][] string contains a human-readable part (HRP), a
-//! data part, and a 6 character [BCH][] checksum.  The data part and
-//! checksum are [base 32][]-encoded with a user-friendly [alphabet][]
-//! that only contains lowercase [ASCII][] alphanumeric characters.
+//! A [Bech32][] string contains a human-readable part (HRP), an encoded
+//! data part, and a 6 character [checksum][].  The data part and
+//! [checksum][] are [base 32][]-encoded with a user-friendly
+//! [alphabet][] that only contains lowercase [ASCII][] alphanumeric
+//! characters.
 //!
 //! Here is an example [Bech32m][] string:
 //!
@@ -24,7 +25,7 @@
 //! - Idiomatic encoding and decoding via the [`Display`][`std::fmt::Display`]
 //!   and [`FromStr`][`std::str::FromStr`] traits.
 //! - Decode arbitrarily long strings.
-//! - Streaming [encoder][`Encoder`].
+//! - Streamed, allocation-free [encoding][`Encoder`] to any [writer][].
 //! - No external dependencies.
 //!
 //! # Examples
@@ -108,12 +109,16 @@
 //!   "Base 32 (Wikipedia)"
 //! [checksum]: https://en.wikipedia.org/wiki/Checksum
 //!   "Checksum (Wikipedia)"
-//! [bch]: https://en.wikipedia.org/wiki/BCH_code
+//! [namespace]: https://en.wikipedia.org/wiki/Namespace
+//!   "Namespace (Wikipedia)"
+//! [bch code]: https://en.wikipedia.org/wiki/BCH_code
 //!   "BCH code (Wikipedia)"
 //! [alphabet]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki#bech32
 //!   "BIP173: Specification: Bech32"
 //! [writer]: `std::io::Write`
 //!   "writer"
+//! [age encryption]: https://age-encryption.org/
+//!   "age encryption"
 
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
@@ -142,6 +147,7 @@
 //     n/a: utility method
 // [ ] crate docs: add note about error fields
 // [ ] find possible error positions in string
+//     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
 
