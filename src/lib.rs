@@ -162,7 +162,7 @@
 // [x] add LICENSE.txt
 // [x] crate docs: document error context fields
 // [ ] add README.md
-// [ ] add tests for multiple separator, non-alphanumeric hrp chars
+// [x] add tests for multiple separator, non-alphanumeric hrp chars
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
 // [ ] dup tests from age impl:
@@ -1990,6 +1990,10 @@ mod tests {
       ), (
         "hello1vehkc6mn27xpct",
         Bech32 { scheme: Scheme::Bech32m, hrp: "hello".parse::<Hrp>().unwrap(), data: b"folks".to_vec() },
+      ), (
+        // test with valid HRP containing separator and printable, non-alphanumeric chars
+        "_1-1dpjkcmr0wxuz0n",
+        Bech32 { scheme: Scheme::Bech32m, hrp: "_1-".parse::<Hrp>().unwrap(), data: b"hello".to_vec() },
       )];
 
       for (s, exp) in tests {
