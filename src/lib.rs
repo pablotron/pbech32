@@ -1,5 +1,7 @@
 //! [Bech32][] encoding and decoding library.
 //!
+//! # What is Bech32?
+//!
 //! [Bech32][] is a fast and user-friendly [base 32][] encoding format
 //! that includes a [namespace][] and [checksum][].  [Bech32m][] is an
 //! update to [Bech32][] with an improved [checksum][] algorithm.
