@@ -161,8 +161,9 @@
 //     n/a: utility method
 // [x] add LICENSE.txt
 // [x] crate docs: document error context fields
-// [ ] add README.md
 // [x] add tests for multiple separator, non-alphanumeric hrp chars
+// [x] coverage > 95%
+// [ ] add README.md
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
 // [ ] dup tests from age impl:
@@ -1606,6 +1607,9 @@ mod tests {
         ('9', Some(5)),
         ('8', Some(7)),
         ('f', Some(9)),
+        ('2', Some(10)),
+        ('4', Some(21)),
+        ('a', Some(29)),
         ('1', None),
       ];
 
