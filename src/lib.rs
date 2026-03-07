@@ -97,6 +97,18 @@
 //! # }
 //! ```
 //!
+//! Many error variants have a context field. Try to decode a string
+//! which has an invalid character at position 1:
+//!
+//! ```
+//! # fn main() {
+//! use pbech32::{Bech32, Err};
+//!
+//! let s = "a 1xxxxxx"; // string with invalid character at position 1
+//! assert_eq!(s.parse::<Bech32>(), Err(Err::InvalidChar(1))); // check result
+//! # }
+//! ```
+//!
 //! [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 //!   "Bech32 (BIP173)"
 //! [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
@@ -148,9 +160,9 @@
 // [-] use AsRef<str> for make() hrp param?
 //     n/a: utility method
 // [x] add LICENSE.txt
+// [x] crate docs: document error context fields
 // [ ] add README.md
 // [ ] add tests for multiple separator, non-alphanumeric hrp chars
-// [ ] crate docs: document error context fields
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
 // [ ] dup tests from age impl:
