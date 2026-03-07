@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_lint_test:
+    name: "build, lint, and test"
+    runs-on: "ubuntu-latest"
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: rustup component add clippy
+      - run: cargo build --verbose
+      - run: cargo clippy
+      - run: cargo test --verbose
+
+  doc:
+    name: "doc"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo doc
+
+  # check code coverage
+  # - fails if coverage drops below 95%
+  # - generates "tarpaulin-report.zip" artifact
+  coverage:
+    name: "coverage"
+    runs-on: "ubuntu-latest"
+    container:
+      image: "xd009642/tarpaulin:develop-nightly"
+      options: --security-opt seccomp=unconfined
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          cargo +nightly tarpaulin -o stdout -o html --timeout 120 --fail-under 95
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tarpaulin-report.zip
+          path: tarpaulin-report.html
