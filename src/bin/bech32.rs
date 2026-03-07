@@ -1,31 +1,59 @@
 //! Command-line [Bech32][] encoding/decoding tool.
 //!
-//! The first argument indicates the mode and must be one of `encode` or
-//! `decode`:
+//! The first argument indicates the action and must be one of:
 //!
 //! - `encode`: Read data from standard input, [Bech32m][]-encode it,
-//!   then write the encoded data to standard output.
+//!   then write the result to standard output.
 //!
 //! - `decode`: Read [Bech32][]-encoded or [Bech32m][]-encoded data from
-//!   standard input, verify the checksum, decode the data, then then
-//!   write the decoded data to standard output.
+//!   standard input, verify the [checksum][], decode the data, then
+//!   write the result to standard output.
 //!
-//! # Example
+//! # Environment Variables
+//!
+//! Encoding reads from the following environment variables:
+//!
+//! - `BECH32_SCHEME`: Encoding scheme name.  One of `bech32` or
+//!   `bech32m`.  Defaults to `bech32m` if unspecified.
+//! - `BECH32_HRP`: human-readable part (HRP). Defaults to
+//!   `example` if unspecified.
+//!
+//! # Examples
+//!
+//! Encode and decode a string:
 //!
 //! ```sh
-//! # encode string "hello world" as bech32
-//! $ echo -n 'hi there' | cargo run -q --bin bech32 encode; echo
-//! abc1dp5jqargv4ex2qlre3s
+//! # encode string
+//! $ echo -n hello | cargo run -q --bin bech32 encode; echo
+//! example1dpjkcmr0qp8pe8
 //!
-//! # decode bech32-encoded string
-//! $ echo -n 'abc1dp5jqargv4ex2qlre3s' | cargo run -q --bin bech32 decode; echo
-//! hi there
+//! # decode string
+//! echo -n example1dpjkcmr0qp8pe8 | cargo run -q --bin bech32 decode; echo
+//! hello
+//! ```
+//!
+//! Encode string with a custom human-readable part (HRP):
+//!
+//! ```sh
+//! # encode with hrp set to "yo"
+//! $ echo -n hello | BECH32_HRP=yo cargo run -q --bin bech32 encode; echo
+//! yo1dpjkcmr03elzfh
+//! ```
+//!
+//! Encode string with using [Bech32][] instead of [Bech32m][]:
+//!
+//! ```sh
+//! # encode with scheme set to "bech32"
+//! $ echo -n hello | BECH32_SCHEME=bech32 cargo run -q --bin bech32 encode; echo
+//! example1dpjkcmr04ahdu9
 //! ```
 //!
 //! [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 //!   "Bech32 (BIP173)"
 //! [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
 //!   "Bech32m (BIP350)"
+//! [checksum]: https://en.wikipedia.org/wiki/Checksum
+//!   "Checksum (Wikipedia)"
 
 use std::io::{Read, Write};
 use pbech32::{Bech32, Encoder, Hrp, Scheme};
