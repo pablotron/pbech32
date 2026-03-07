@@ -1967,6 +1967,33 @@ mod tests {
     }
 
     #[test]
+    fn test_new() {
+      let hrp: Hrp = "a".parse().unwrap();
+      let tests = vec![(
+        "a12uel5l",
+        Scheme::Bech32,
+        Bech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![] },
+      ), (
+        "a1lqfn3a",
+        Scheme::Bech32m,
+        Bech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![] },
+      ), (
+        "a1qypqxpq9wunxjs",
+        Scheme::Bech32,
+        Bech32 { scheme: Scheme::Bech32, hrp: hrp.clone(), data: vec![1, 2, 3, 4, 5] },
+      ), (
+        "a1qypqxpq9mqr2hj",
+        Scheme::Bech32m,
+        Bech32 { scheme: Scheme::Bech32m, hrp: hrp.clone(), data: vec![1, 2, 3, 4, 5] },
+      )];
+
+      for (s, scheme, exp) in tests {
+        let got = Bech32::new(s, Some(scheme)).expect(s);
+        assert_eq!(got, exp, "{exp}");
+      }
+    }
+
+    #[test]
     fn test_from_str() {
       let hrp: Hrp = "a".parse().unwrap();
       let tests = vec![(
