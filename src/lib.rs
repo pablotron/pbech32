@@ -149,6 +149,7 @@
 //     n/a: utility method
 // [x] add LICENSE.txt
 // [ ] add README.md
+// [ ] add tests for multiple separator, non-alphanumeric hrp chars
 // [ ] crate docs: document error context fields
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
