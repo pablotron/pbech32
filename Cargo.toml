@@ -2,6 +2,15 @@
 name = "pbech32"
 version = "0.1.0"
 edition = "2024"
+authors = ["Paul Duncan"]
+description = "Bech32 encoding and decoding library."
+readme = "README.md"
+homepage = "https://github.com/pablotron/pbech32"
+repository = "https://github.com/pablotron/pbech32"
+documentation = "https://docs.rs/pbech32"
+license = "MIT-0"
+# keywords = ["cvss", "parse", "score", "severity"]
+# categories = ["security", "parser-implementations"]
 
 [dependencies]
 
