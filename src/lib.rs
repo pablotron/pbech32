@@ -1984,6 +1984,26 @@ mod tests {
         assert_eq!(got, exp, "{s}: {got} != {exp}");
       }
     }
+
+    #[test]
+    fn test_from_str_fail() {
+      let long_str = str::repeat("x", 85) + "1" + "aaaaaa";
+      let tests = vec![
+        ("", Err::InvalidLen(0)),
+        ("aaaaaaaaaa", Err::MissingSeparator),
+        (&long_str, Err::InvalidHrpLen(85)),
+        ("a b1aaaaaa", Err::InvalidChar(1)),
+        ("Ab1aaaaaa", Err::MixedCase(1, 0)),
+        ("ab1Aaaaaa", Err::MixedCase(0, 3)),
+        ("a12uel5x", Err::InvalidChecksum),
+        ("hello1vehkc6mn27xpcx", Err::InvalidChecksum),
+      ];
+
+      for (s, exp) in tests {
+        let got = s.parse::<Bech32>();
+        assert_eq!(got, Err(exp), "{s}: {got:?} != {exp:?}");
+      }
+    }
   }
 
   mod encoder {
