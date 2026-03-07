@@ -145,7 +145,9 @@
 //     n/a: causes mutable borrow errors in tests
 // [-] use AsRef<str> for make() hrp param?
 //     n/a: utility method
-// [ ] crate docs: add note about error fields
+// [x] add LICENSE.txt
+// [ ] add README.md
+// [ ] crate docs: document error context fields
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
 // [ ] dup tests from age impl:
