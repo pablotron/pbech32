@@ -34,10 +34,10 @@ use pbech32::{Bech32, Encoder, Hrp, Scheme};
 const DEFAULT_SCHEME: Scheme = Scheme::Bech32m;
 
 /// Default HRP string.
-const DEFAULT_HRP: &str = "abc";
+const DEFAULT_HRP: &str = "example";
 
 /// Encoder configuration
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct EncodeConfig {
   scheme: Scheme,
   hrp: Hrp,
@@ -83,7 +83,7 @@ impl EncodeConfig {
 }
 
 /// Tool action.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 enum Action {
   /// Encode from standard input and write to standard output.
   Encode(EncodeConfig),
@@ -144,5 +144,121 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
-  // TODO: add tests
+  mod encode_config {
+    use super::super::*;
+
+    // Set environment variables, invoke function, then restore
+    // environment variables to their original values.
+    //
+    // Used by `tests::encode_config::test_from_env()`.
+    //
+    // Note: unsafe blocks are necessary because `std::env::set_var()`
+    // and `std::env::remove_var()` are unsafe.
+    fn with_env<F: FnOnce()>(vals: &[(&str, &str)], f: F) {
+      // cache old vals
+      let old_vals = vals.iter().map(|(key, _)| (key, match std::env::var(key) {
+        Ok(s) => Some(s),
+        Err(std::env::VarError::NotPresent) => None,
+        Err(err) => panic!("{err}"),
+      }));
+
+      vals.iter().for_each(|(key, val)| unsafe { std::env::set_var(key, val) }); // set vars
+      f(); // call fn
+
+      // restore old vals
+      old_vals.for_each(|(key, val)| match val {
+        Some(val) => unsafe { std::env::set_var(key, val) },
+        None => unsafe { std::env::remove_var(key) },
+      });
+    }
+
+    #[test]
+    #[ignore] // ignore by default because it messes with others
+    fn test_from_env() {
+      let hrp: Hrp = DEFAULT_HRP.parse().unwrap();
+      let tests = vec![(
+        "empty",
+        vec![],
+        EncodeConfig { scheme: Scheme::Bech32m, hrp: hrp.clone() },
+      ), (
+        "scheme=bech32",
+        vec![("BECH32_SCHEME", "bech32")],
+        EncodeConfig { scheme: Scheme::Bech32, hrp: hrp.clone() },
+      ), (
+        "scheme=bech32m",
+        vec![("BECH32_SCHEME", "bech32m")],
+        EncodeConfig { scheme: Scheme::Bech32m, hrp: hrp.clone() },
+      ), (
+        "hrp=asdf",
+        vec![("BECH32_HRP", "asdf")],
+        EncodeConfig { scheme: Scheme::Bech32m, hrp: "asdf".parse().unwrap() },
+      ), (
+        "scheme=bech32, hrp=fdsa",
+        vec![("BECH32_SCHEME", "bech32"), ("BECH32_HRP", "fdsa")],
+        EncodeConfig { scheme: Scheme::Bech32, hrp: "fdsa".parse().unwrap() },
+      )];
+
+      for (name, env, exp) in tests {
+        with_env(&env, || {
+          let got = EncodeConfig::from_env().unwrap();
+          assert_eq!(got, exp, "{name}");
+        });
+      }
+    }
+  }
+
+  mod action {
+    use super::super::*;
+
+    #[test]
+    fn test_from_str() {
+      let hrp: Hrp = DEFAULT_HRP.parse().unwrap();
+      let config = EncodeConfig { scheme: DEFAULT_SCHEME, hrp: hrp };
+      let tests = vec![
+        ("d", Action::Decode),
+        ("dec", Action::Decode),
+        ("decode", Action::Decode),
+        ("e", Action::Encode(config.clone())),
+        ("enc", Action::Encode(config.clone())),
+        ("encode", Action::Encode(config.clone())),
+      ];
+
+      for (s, exp) in tests {
+        let got: Action = s.parse().unwrap();
+        assert_eq!(got, exp, "{s}");
+      }
+    }
+
+    #[test]
+    fn test_from_str_fail() {
+      let tests = vec![
+        ("asdf", "unknown action: asdf"),
+      ];
+
+      for (s, exp) in tests {
+        match s.parse::<Action>() {
+          Ok(val) => panic!("got {val:?}, exp err"),
+          Err(err) => assert_eq!(err.to_string(), exp, "{s}"),
+        };
+      }
+    }
+
+    #[test]
+    fn test_run() {
+      let hrp: Hrp = DEFAULT_HRP.parse().unwrap();
+      let config = EncodeConfig { scheme: DEFAULT_SCHEME, hrp: hrp };
+
+      let tests = vec![
+        ("encode asdf", Action::Encode(config.clone()), "asdf", "example1v9ekges6962cn"),
+        ("decode asdf", Action::Decode, "example1v9ekges6962cn", "asdf\0"),
+      ];
+
+      for (name, action, s, exp) in tests {
+        let mut got = vec![]; // output "writer"
+        action.run(&mut s.as_bytes(), &mut got).unwrap(); // run action
+        let got = str::from_utf8(&got).unwrap(); // convert to string
+        assert_eq!(got, exp, "{name}"); // check result
+      }
+    }
+  }
 }
