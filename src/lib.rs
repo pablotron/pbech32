@@ -188,7 +188,7 @@ pub enum Err {
   /// **Note:** [BIP173][] limits the maximum string length to 90
   /// characters; this library does not have a maximum string length.
   ///
-  /// # Examples
+  /// # Example
   ///
   /// Try to parse an empty string:
   ///
@@ -1411,6 +1411,9 @@ impl std::fmt::Display for Bech32 {
 /// # }
 /// ```
 ///
+/// See `examples/stream.rs` for an example of streaming to standard
+/// output.
+///
 /// [writer]: `std::io::Write`
 ///   "writer"
 /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
@@ -1434,7 +1437,28 @@ impl<W: std::io::Write> Encoder<W> {
   ///
   /// # Example
   ///
-  /// TODO
+  /// Encode to a [`Vec<u8>`]:
+  ///
+  /// ```
+  /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+  /// use std::io::Write;
+  /// use pbech32::{Encoder, Hrp, Scheme};
+  ///
+  /// let mut vec: Vec<u8> = Vec::new(); // output vector
+  /// let hrp: Hrp = "hello".parse()?; // human readable part
+  ///
+  /// let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
+  /// encoder.write_all(b"folks")?; // write data
+  /// encoder.flush()?; // flush encoder (REQUIRED)
+  ///
+  /// let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
+  /// assert_eq!(got, "hello1vehkc6mn27xpct"); // check result
+  /// # Ok(())
+  /// # }
+  /// ```
+  ///
+  /// See `examples/stream.rs` for an example of streaming to standard
+  /// output.
   pub fn new(mut inner: W, scheme: Scheme, hrp: Hrp) -> std::io::Result<Self> {
     // init checksum and absorb hrp
     let mut sum = hrp.0.bytes().fold(1, |r, b| checksum::polymod(r, b >> 5)); // high bits
