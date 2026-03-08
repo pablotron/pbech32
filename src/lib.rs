@@ -2125,6 +2125,36 @@ mod tests {
     use super::super::*;
     use std::io::Write;
 
+    /// Mock writer which fails after writing `max` bytes.
+    struct FailWriter {
+      pos: usize, // number of bytes written
+      max: usize, // maximum number of bytes
+    }
+
+    impl FailWriter {
+      /// Create new [`FailWriter`].
+      fn new(max: usize) -> Self {
+        Self { pos: 0, max: max }
+      }
+    }
+
+    impl std::io::Write for FailWriter {
+      fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        use std::io::{Error, ErrorKind};
+
+        if self.pos + buf.len() > self.max {
+          return Err(Error::from(ErrorKind::StorageFull));
+        }
+
+        self.pos += buf.len(); // increment position
+        Ok(buf.len()) // return success
+      }
+
+      fn flush(&mut self) -> std::io::Result<()> {
+        Ok(()) // return success
+      }
+    }
+
     #[test]
     fn test_write_and_flush() {
       let tests = vec![(
@@ -2214,6 +2244,20 @@ mod tests {
       e.flush().unwrap(); // flush encoder
       let got = e.flush().unwrap(); // flush again
       assert_eq!(got, ()); // verify that second flush succeeded
+    }
+
+    #[test]
+    fn test_inner_write_fail() {
+      let exp = std::io::ErrorKind::StorageFull; // expected error
+      let hrp: Hrp = "asdf".parse().unwrap(); // hrp
+      let mut fw = FailWriter::new(6); // writer that fails after 6 bytes
+      let mut e = Encoder::new(&mut fw, Scheme::Bech32m, hrp).unwrap();
+
+      // try write, verify that it fails with expected error
+      match e.write(&b"hello"[..]) {
+        Ok(num) => panic!("got {num}, exp err"),
+        Err(err) => assert_eq!(err.kind(), exp),
+      };
     }
   }
 }
