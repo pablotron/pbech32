@@ -307,6 +307,11 @@ mod tests {
           };
         });
       }
+
+      // clear all env vars
+      for key in vec!["BECH32_SCHEME", "BECH32_HRP"] {
+        unsafe { std::env::remove_var(key); }
+      }
     }
   }
 
