@@ -7,10 +7,10 @@
 //!
 //! - `encode`: Read data from standard input, [Bech32m][]-encode it,
 //!   then write the result to standard output.
-//!
 //! - `decode`: Read [Bech32][]-encoded or [Bech32m][]-encoded data from
 //!   standard input, verify the [checksum][], decode the data, then
 //!   write the result to standard output.
+//! - `help`: Print help.
 //!
 //! **Note:** `e` and `enc` are aliases for `encode`, and `d` and `dec`
 //! are aliases for `decode`.
@@ -137,9 +137,15 @@ enum Action {
 
   /// Decode from standard input and write to standard output.
   Decode,
+
+  /// Print usage.
+  Help,
 }
 
 impl Action {
+  /// Usage string
+  const HELP: &str = "Usage: bech32 [encode|decode|help]\n";
+
   /// Run action with given source [reader][`std::io::Read`] and
   /// destination [writer][`std::io::Write`].
   pub fn run<R: Read, W: Write>(&self, mut src: R, mut dst: &mut W) -> Result<(), Box<dyn std::error::Error>> {
@@ -156,6 +162,8 @@ impl Action {
         let b: Bech32 = s.parse()?; // parse buffer
         dst.write_all(&b.data)?; // write decoded data to output
       },
+
+      Action::Help => dst.write_all(Self::HELP.as_ref())?,
     };
 
     Ok(())
@@ -169,6 +177,7 @@ impl std::str::FromStr for Action {
     match s {
       "e" | "enc" | "encode" => Ok(Action::Encode(EncodeConfig::from_env()?)),
       "d" | "dec" | "decode" => Ok(Action::Decode),
+      "h" | "-h" | "--help" | "help" => Ok(Action::Help),
       _ => Err(format!("unknown action: {}", s).into()),
     }
   }
@@ -267,6 +276,9 @@ mod tests {
         ("e", Action::Encode(config.clone())),
         ("enc", Action::Encode(config.clone())),
         ("encode", Action::Encode(config.clone())),
+        ("-h", Action::Help),
+        ("--help", Action::Help),
+        ("help", Action::Help),
       ];
 
       for (s, exp) in tests {
@@ -297,6 +309,7 @@ mod tests {
       let tests = vec![
         ("encode asdf", Action::Encode(config.clone()), "asdf", "example1v9ekges6962cn"),
         ("decode asdf", Action::Decode, "example1v9ekges6962cn", "asdf\0"),
+        ("help", Action::Help, "", Action::HELP),
       ];
 
       for (name, action, s, exp) in tests {
