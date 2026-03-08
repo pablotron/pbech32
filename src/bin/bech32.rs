@@ -1,6 +1,9 @@
 //! Command-line [Bech32][] encoding/decoding tool.
 //!
-//! The first argument indicates the action and must be one of:
+//! # Command-Line Arguments
+//!
+//! The first command-line argument indicates the action.  It is
+//! required and must be one of the following values:
 //!
 //! - `encode`: Read data from standard input, [Bech32m][]-encode it,
 //!   then write the result to standard output.
@@ -8,6 +11,9 @@
 //! - `decode`: Read [Bech32][]-encoded or [Bech32m][]-encoded data from
 //!   standard input, verify the [checksum][], decode the data, then
 //!   write the result to standard output.
+//!
+//! **Note:** `e` and `enc` are aliases for `encode`, and `d` and `dec`
+//! are aliases for `decode`.
 //!
 //! # Environment Variables
 //!
@@ -46,6 +52,19 @@
 //! # encode with scheme set to "bech32"
 //! $ echo -n hello | BECH32_SCHEME=bech32 cargo run -q --bin bech32 encode; echo
 //! example1dpjkcmr04ahdu9
+//! ```
+//!
+//! # Notes
+//!
+//! If you encode a string with a length that is not divisible by 5,
+//! then the decoded string may contain trailing `NUL` characters.
+//!
+//! Example:
+//!
+//! ```sh
+//! $ echo -n hi | cargo run -q --bin bech32 enc | cargo run -q --bin bech32 dec | hd
+//! 00000000  68 69 00                                          |hi.|
+//! 00000003
 //! ```
 //!
 //! [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
@@ -155,6 +174,7 @@ impl std::str::FromStr for Action {
   }
 }
 
+/// Command-line entry point.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   // get/check args
   let args: Vec<String> = std::env::args().collect();
@@ -162,9 +182,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     panic!("Usage: {} [encode|decode]", args[0]);
   }
 
-  // get action from first argument
-  let action: Action = args[1].parse()?;
-
+  let action: Action = args[1].parse()?; // get action
   let (mut stdin, mut stdout) = (std::io::stdin(), std::io::stdout()); // get stdio
   action.run(&mut stdin, &mut stdout)?; // run action
   Ok(()) // return success
