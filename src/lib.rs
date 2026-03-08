@@ -163,8 +163,8 @@
 // [x] crate docs: document error context fields
 // [x] add tests for multiple separator, non-alphanumeric hrp chars
 // [x] coverage > 95%
-// [ ] src/bin/bech32.rs
-// [ ] add README.md
+// [x] src/bin/bech32.rs
+// [x] add README.md
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
 // [ ] dup tests from age impl:
