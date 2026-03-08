@@ -232,8 +232,8 @@ mod tests {
     }
 
     // this test is ignored by default because it alters environment
-    // variables which affect tests running in other threads.  to run it
-    // safely, run tests with threading disabled, like so:
+    // variables which affect tests running in other threads.  to run
+    // this test safely, run tests with threading disabled, like so:
     //
     //   # run tests with threading disabled and include ignored tests
     //   cargo test -j 1 -- --include-ignored
@@ -244,7 +244,7 @@ mod tests {
     //   cargo tarpaulin -j 1 -i
     //
     #[test]
-    #[ignore] // ignore by default because it messes with others
+    #[ignore] // ignored because it breaks other tests
     fn test_from_env() {
       let hrp: Hrp = DEFAULT_HRP.parse().unwrap();
 
