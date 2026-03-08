@@ -2193,5 +2193,27 @@ mod tests {
         assert_eq!(str::from_utf8(&got).unwrap(), exp);
       }
     }
+
+    #[test]
+    fn test_write_after_flush() {
+      let hrp: Hrp = "asdf".parse().unwrap();
+      let mut got: Vec<u8> = Vec::new();
+      let mut e = Encoder::new(&mut got, Scheme::Bech32m, hrp).unwrap();
+      e.write_all(&b"asdf"[..]).unwrap(); // write
+      e.flush().unwrap(); // flush encoder
+      let len = e.write(&b"asdf"[..]).unwrap(); // write after flush
+      assert_eq!(len, 0); // verify that no bytes were written
+    }
+
+    #[test]
+    fn test_flush_after_flush() {
+      let hrp: Hrp = "asdf".parse().unwrap();
+      let mut got: Vec<u8> = Vec::new();
+      let mut e = Encoder::new(&mut got, Scheme::Bech32m, hrp).unwrap();
+      e.write_all(&b"asdf"[..]).unwrap(); // write
+      e.flush().unwrap(); // flush encoder
+      let got = e.flush().unwrap(); // flush again
+      assert_eq!(got, ()); // verify that second flush succeeded
+    }
   }
 }
