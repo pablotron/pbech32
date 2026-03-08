@@ -110,7 +110,7 @@ impl EncodeConfig {
 
     // get scheme
     let scheme = match var("BECH32_SCHEME") {
-      Ok(s) if s.len() > 0 => match s.as_ref() {
+      Ok(s) if !s.is_empty() => match s.as_ref() {
         "bech32" => Scheme::Bech32,
         "bech32m" => Scheme::Bech32m,
         _ => return Err(format!("unknown scheme: {}", s).into()),
@@ -121,7 +121,7 @@ impl EncodeConfig {
 
     // get hrp
     let hrp = match var("BECH32_HRP") {
-      Ok(s) if s.len() > 0 => s.parse::<Hrp>()?,
+      Ok(s) if !s.is_empty() => s.parse::<Hrp>()?,
       Ok(_) | Err(VarError::NotPresent) => DEFAULT_HRP.parse::<Hrp>()?,
       Err(err) => return Err(Box::new(err)),
     };
@@ -216,7 +216,7 @@ mod tests {
 
       // cache old vals
       let old_vals = vals.iter().map(|(key, _)| (key, match var(key) {
-        Ok(s) if s.len() > 0 => Some(s),
+        Ok(s) if !s.is_empty() => Some(s),
         Ok(_) | Err(VarError::NotPresent) => None,
         Err(err) => panic!("{err}"),
       }));
