@@ -106,21 +106,23 @@ impl EncodeConfig {
   ///   scheme name (e.g. it is not one of `bech32` or `bech32m`).
   /// - `BECH32_HRP` is set and the value is not a valid HRP string.
   pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
+    use std::env::{VarError, var};
+
     // get scheme
-    let scheme = match std::env::var("BECH32_SCHEME") {
-      Ok(s) => match s.as_ref() {
+    let scheme = match var("BECH32_SCHEME") {
+      Ok(s) if s.len() > 0 => match s.as_ref() {
         "bech32" => Scheme::Bech32,
         "bech32m" => Scheme::Bech32m,
-        _ => return Err("unknown scheme".into()),
+        _ => return Err(format!("unknown scheme: {}", s).into()),
       },
-      Err(std::env::VarError::NotPresent) => DEFAULT_SCHEME,
+      Ok(_) | Err(VarError::NotPresent) => DEFAULT_SCHEME,
       Err(err) => return Err(Box::new(err)),
     };
 
     // get hrp
-    let hrp = match std::env::var("BECH32_HRP") {
-      Ok(s) => s.parse::<Hrp>()?,
-      Err(std::env::VarError::NotPresent) => DEFAULT_HRP.parse::<Hrp>()?,
+    let hrp = match var("BECH32_HRP") {
+      Ok(s) if s.len() > 0 => s.parse::<Hrp>()?,
+      Ok(_) | Err(VarError::NotPresent) => DEFAULT_HRP.parse::<Hrp>()?,
       Err(err) => return Err(Box::new(err)),
     };
 
@@ -210,20 +212,22 @@ mod tests {
     // Note: unsafe blocks are necessary because `std::env::set_var()`
     // and `std::env::remove_var()` are unsafe.
     fn with_env<F: FnOnce()>(vals: &[(&str, &str)], f: F) {
+      use std::env::{VarError, remove_var, set_var, var};
+
       // cache old vals
-      let old_vals = vals.iter().map(|(key, _)| (key, match std::env::var(key) {
-        Ok(s) => Some(s),
-        Err(std::env::VarError::NotPresent) => None,
+      let old_vals = vals.iter().map(|(key, _)| (key, match var(key) {
+        Ok(s) if s.len() > 0 => Some(s),
+        Ok(_) | Err(VarError::NotPresent) => None,
         Err(err) => panic!("{err}"),
       }));
 
-      vals.iter().for_each(|(key, val)| unsafe { std::env::set_var(key, val) }); // set vars
+      vals.iter().for_each(|(key, val)| unsafe { set_var(key, val) }); // set vars
       f(); // call fn
 
       // restore old vals
       old_vals.for_each(|(key, val)| match val {
-        Some(val) => unsafe { std::env::set_var(key, val) },
-        None => unsafe { std::env::remove_var(key) },
+        Some(val) => unsafe { set_var(key, val) },
+        None => unsafe { remove_var(key) },
       });
     }
 
