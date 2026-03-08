@@ -1126,8 +1126,9 @@ impl RawBech32 {
 
     // decode data
     let mut data: Vec<u8> = Vec::with_capacity(enc.len());
+    let data_pos = hrp.0.len() + 1; // start of data in str
     for (pos, c) in enc.chars().enumerate() {
-      data.push(chars::decode(c).ok_or(Err::InvalidChar(pos))?);
+      data.push(chars::decode(c).ok_or(Err::InvalidChar(data_pos + pos))?);
     }
 
     // get ordered list of checksum schemes
