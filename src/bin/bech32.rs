@@ -194,7 +194,7 @@ impl std::str::FromStr for Action {
 ///
 /// - `args`: Command-line arguments.
 /// - `stdin`: Input [reader][`std::io::Read`].
-/// - `stdout`: Output [writer][`std::io::Wrier`].
+/// - `stdout`: Output [writer][`std::io::Write`].
 fn run<R: Read, W: Write>(args: Vec<String>, mut src: R, mut dst: &mut W) -> Result<(), Box<dyn std::error::Error>> {
   match args.len() {
     2 => args[1].parse::<Action>()?.run(&mut src, &mut dst), // parse/run action
