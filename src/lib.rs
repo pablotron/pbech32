@@ -137,8 +137,6 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
-// ref: https://learnmeabitcoin.com/technical/keys/bech32/
-//
 // TODO:
 // [x] encode/decode data into 5-bit form
 // [x] auto-detect scheme
@@ -165,10 +163,12 @@
 // [x] coverage > 95%
 // [x] src/bin/bech32.rs
 // [x] add README.md
-// [ ] find possible error positions in string
-//     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
+// [x] Cargo.toml: populate metadata
 // [ ] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
+// [ ] find possible error positions in string
+//     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
+// ref: https://learnmeabitcoin.com/technical/keys/bech32/
 
 /// String parse error.
 ///
