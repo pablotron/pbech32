@@ -247,7 +247,9 @@ mod tests {
     #[ignore] // ignore by default because it messes with others
     fn test_from_env() {
       let hrp: Hrp = DEFAULT_HRP.parse().unwrap();
-      let tests = vec![(
+
+      // tests expected to pass
+      let pass_tests = vec![(
         "empty",
         vec![],
         EncodeConfig { scheme: Scheme::Bech32m, hrp: hrp.clone() },
@@ -269,10 +271,30 @@ mod tests {
         EncodeConfig { scheme: Scheme::Bech32, hrp: "fdsa".parse().unwrap() },
       )];
 
-      for (name, env, exp) in tests {
+      for (name, env, exp) in pass_tests {
         with_env(&env, || {
           let got = EncodeConfig::from_env().unwrap();
           assert_eq!(got, exp, "{name}");
+        });
+      }
+
+      // tests expected to fail
+      let fail_tests = vec![(
+        "scheme=invalid",
+        vec![("BECH32_SCHEME", "invalid")],
+        "unknown scheme: invalid",
+      ), (
+        "hrp=foo bar",
+        vec![("BECH32_SCHEME", ""), ("BECH32_HRP", "foo bar")],
+        "invalid character at position 3",
+      )];
+
+      for (name, env, exp) in fail_tests {
+        with_env(&env, || {
+          match EncodeConfig::from_env() {
+            Ok(config) => panic!("got {config:?}, exp err"),
+            Err(err) => assert_eq!(err.to_string(), exp, "{name}"),
+          };
         });
       }
     }
