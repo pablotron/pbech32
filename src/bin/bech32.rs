@@ -189,15 +189,17 @@ impl std::str::FromStr for Action {
 ///
 /// **Note:*** This function is separate from [`main()`] to make it
 /// testable.
-fn run<R: Read, W: Write>(args: Vec<String>, mut stdin: R, mut stdout: &mut W) -> Result<(), Box<dyn std::error::Error>> {
-  // check args
-  if args.len() != 2 {
-    return Err(format!("Usage: {} [encode|decode|help]", args[0]).into());
+///
+/// # Parameters
+///
+/// - `args`: Command-line arguments.
+/// - `stdin`: Input [reader][`std::io::Read`].
+/// - `stdout`: Output [writer][`std::io::Wrier`].
+fn run<R: Read, W: Write>(args: Vec<String>, mut src: R, mut dst: &mut W) -> Result<(), Box<dyn std::error::Error>> {
+  match args.len() {
+    2 => args[1].parse::<Action>()?.run(&mut src, &mut dst), // parse/run action
+    _ => Err(format!("Usage: {} [encode|decode|help]", args[0]).into()), // usage error
   }
-
-  let action: Action = args[1].parse()?; // get action
-  action.run(&mut stdin, &mut stdout)?; // run action
-  Ok(()) // return success
 }
 
 /// Command-line entry point.
