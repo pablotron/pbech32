@@ -9,7 +9,7 @@ homepage = "https://github.com/pablotron/pbech32"
 repository = "https://github.com/pablotron/pbech32"
 documentation = "https://docs.rs/pbech32"
 license = "MIT-0"
-keywords = ["bech32", "parse", "encode", "decode"]
+keywords = ["bech32", "bech32m", "parse", "encode", "decode"]
 categories = ["encoding", "parser-implementations"]
 
 [dependencies]
