@@ -49,7 +49,7 @@ jobs:
       # this is to work around issues with threads for
       # tests::action::test_from_env() in `src/bin/bech32.rs`
       - run: |
-          cargo +nightly tarpaulin -j 1 -i -o stdout -o html --timeout 120 --fail-under 90
+          cargo +nightly tarpaulin -j 1 -i -o stdout -o html --timeout 120 --fail-under 95
       - uses: actions/upload-artifact@v4
         with:
           name: tarpaulin-report.zip
