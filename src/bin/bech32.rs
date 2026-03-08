@@ -188,7 +188,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   // get/check args
   let args: Vec<String> = std::env::args().collect();
   if args.len() != 2 {
-    panic!("Usage: {} [encode|decode]", args[0]);
+    panic!("Usage: {} [encode|decode|help]", args[0]);
   }
 
   let action: Action = args[1].parse()?; // get action
