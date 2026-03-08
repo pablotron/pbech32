@@ -227,6 +227,18 @@ mod tests {
       });
     }
 
+    // this test is ignored by default because it alters environment
+    // variables which affect tests running in other threads.  to run it
+    // safely, run tests with threading disabled, like so:
+    //
+    //   # run tests with threading disabled and include ignored tests
+    //   cargo test -j 1 -- --include-ignored
+    //
+    // same for code coverage w/tarpaulin:
+    //
+    //   # run tarpaulin with threading disabled and include ignored tests
+    //   cargo tarpaulin -j 1 -i
+    //
     #[test]
     #[ignore] // ignore by default because it messes with others
     fn test_from_env() {
