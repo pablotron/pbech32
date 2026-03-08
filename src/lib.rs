@@ -164,11 +164,14 @@
 // [x] src/bin/bech32.rs
 // [x] add README.md
 // [x] Cargo.toml: populate metadata
-// [ ] dup tests from age impl:
+// [x] dup tests from age impl:
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32.go
+// [ ] document difference between this decoder and others
+//     (for example: appending zeros, maximum hrp len in age test)
+// [ ] add "see also" to "What is Bech32?" with links to bip173, bip350,
+//     and this ref: https://learnmeabitcoin.com/technical/keys/bech32/
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
-// ref: https://learnmeabitcoin.com/technical/keys/bech32/
 
 /// String parse error.
 ///
@@ -2026,6 +2029,57 @@ mod tests {
         // test with valid HRP containing separator and printable, non-alphanumeric chars
         "_1-1dpjkcmr0wxuz0n",
         Bech32 { scheme: Scheme::Bech32m, hrp: "_1-".parse::<Hrp>().unwrap(), data: b"hello".to_vec() },
+      ), (
+        // from age-encryption bech32 test suite
+        "an83characterlonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1tt5tgs",
+        Bech32 {
+          scheme: Scheme::Bech32,
+          hrp: "an83characterlonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio".parse::<Hrp>().unwrap(),
+          data: b"".to_vec(),
+        },
+      ), (
+        // from age-encryption bech32 test suite
+        "abcdef1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw",
+        Bech32 {
+          scheme: Scheme::Bech32,
+          hrp: "abcdef".parse::<Hrp>().unwrap(),
+          data: [0, 68, 50, 20, 199, 66, 84, 182, 53 , 207, 132, 101, 58, 86, 215, 198, 117, 190, 119, 223].to_vec(),
+        },
+      ), (
+        // from age-encryption bech32 test suite
+        "11qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8247j",
+        Bech32 {
+          scheme: Scheme::Bech32,
+          hrp: "1".parse::<Hrp>().unwrap(),
+          data: [0u8; 52].to_vec(),
+        },
+      ), (
+        // from age-encryption bech32 test suite
+        "split1checkupstagehandshakeupstreamerranterredcaperred2y9e3w",
+        Bech32 {
+          scheme: Scheme::Bech32,
+          hrp: "split".parse::<Hrp>().unwrap(),
+          data: [197, 243, 139, 112, 48, 95, 81, 155, 246, 109, 133, 251, 108, 240, 48, 88, 243, 221, 228, 99, 236, 215, 145, 143, 45, 199, 67, 145, 143, 45].to_vec(),
+        },
+      ), (
+        // from age-encryption bech32 test suite
+        "long10pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7qfcsvr0",
+        Bech32 {
+          scheme: Scheme::Bech32,
+          hrp: "long".parse::<Hrp>().unwrap(),
+          data: (0..=1024).map(|i| 120u8 * ((i < 1024) as u8)).collect::<Vec<u8>>(),
+        },
+        // ), (
+        // from age-encryption bech32 test suite
+        //
+        // disabled because this test contains an hrp with a length of
+        // 84, which exceeds the maximum hrp length of 83 from bip173
+        // "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx",
+        // Bech32 {
+        //   scheme: Scheme::Bech32,
+        //   hrp: "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio".parse::<Hrp>().unwrap(),
+        //   data: b"".to_vec(),
+        // },
       )];
 
       for (s, exp) in tests {
@@ -2046,6 +2100,14 @@ mod tests {
         ("ab1Aaaaaa", Err::MixedCase(0, 3)),
         ("a12uel5x", Err::InvalidChecksum),
         ("hello1vehkc6mn27xpcx", Err::InvalidChecksum),
+
+        // from age-encryption test suite
+        ("split1checkupstagehandshakeupstreamerranterredcaperred2y9e2w", Err::InvalidChecksum),
+        ("s lit1checkupstagehandshakeupstreamerranterredcaperredp8hs2p", Err::InvalidChar(1)),
+        ("split1cheo2y9e2w", Err::InvalidChar(9)),
+        ("split1a2y9w", Err::MissingSeparator),
+        ("1checkupstagehandshakeupstreamerranterredcaperred2y9e3w", Err::InvalidHrpLen(0)),
+        ("spl\u{ff}t1checkupstagehandshakeupstreamerranterredcaperred2y9e3w", Err::InvalidChar(3)),
       ];
 
       for (s, exp) in tests {
