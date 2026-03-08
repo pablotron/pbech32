@@ -185,18 +185,26 @@ impl std::str::FromStr for Action {
   }
 }
 
-/// Command-line entry point.
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-  // get/check args
-  let args: Vec<String> = std::env::args().collect();
+/// Run command.
+///
+/// **Note:*** This function is separate from [`main()`] to make it
+/// testable.
+fn run<R: Read, W: Write>(args: Vec<String>, mut stdin: R, mut stdout: &mut W) -> Result<(), Box<dyn std::error::Error>> {
+  // check args
   if args.len() != 2 {
-    panic!("Usage: {} [encode|decode|help]", args[0]);
+    return Err(format!("Usage: {} [encode|decode|help]", args[0]).into());
   }
 
   let action: Action = args[1].parse()?; // get action
-  let (mut stdin, mut stdout) = (std::io::stdin(), std::io::stdout()); // get stdio
   action.run(&mut stdin, &mut stdout)?; // run action
   Ok(()) // return success
+}
+
+/// Command-line entry point.
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+  let args: Vec<String> = std::env::args().collect(); // get args
+  let (mut stdin, mut stdout) = (std::io::stdin(), std::io::stdout()); // get stdio
+  run(args, &mut stdin, &mut stdout) // run
 }
 
 #[cfg(test)]
@@ -355,6 +363,55 @@ mod tests {
         action.run(&mut s.as_bytes(), &mut got).unwrap(); // run action
         let got = str::from_utf8(&got).unwrap(); // convert to string
         assert_eq!(got, exp, "{name}"); // check result
+      }
+    }
+  }
+
+  #[test]
+  fn test_run() {
+    use super::*;
+
+    // tests expected to pass
+    let pass_tests = vec![(
+      "encode",
+      vec!["bech32".to_string(), "encode".to_string()],
+      "asdf",
+      "example1v9ekges6962cn",
+    ), (
+      "decode",
+      vec!["bech32".to_string(), "decode".to_string()],
+      "example1v9ekges6962cn",
+      "asdf\0",
+    )];
+
+    for (name, args, s, exp) in pass_tests {
+      let mut got = vec![]; // output "writer"
+      run(args, &mut s.as_bytes(), &mut got).unwrap(); // run action
+      let got = str::from_utf8(&got).unwrap(); // convert to string
+      assert_eq!(got, exp, "{name}"); // check result
+    }
+
+    // tests expected to fail
+    let fail_tests = vec![(
+      "missing action",
+      vec!["bech32".to_string()],
+      "",
+      "Usage: bech32 [encode|decode|help]",
+    ), (
+      "extra args",
+      vec!["bech32".to_string(), "foo".to_string(), "bar".to_string()],
+      "",
+      "Usage: bech32 [encode|decode|help]",
+    )];
+
+    for (name, args, s, exp) in fail_tests {
+      let mut got = vec![]; // output "writer"
+      match run(args, &mut s.as_bytes(), &mut got) {
+        Ok(_) => {
+          let got = str::from_utf8(&got).unwrap(); // convert to string
+          panic!("got success (got = {got}), exp error");
+        },
+        Err(err) => assert_eq!(err.to_string(), exp, "{name}"),
       }
     }
   }
