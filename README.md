@@ -210,7 +210,6 @@ Use `cargo clippy` to run the [linter][]:
 ```sh
 $ cargo clippy
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.04s
-$
 ```
 
 Install [cargo-tarpaulin][] and use `cargo tarpaulin` to check code
@@ -228,7 +227,6 @@ $ cargo tarpaulin
 || src/lib.rs: 190/198
 ||
 91.56% coverage, 217/237 lines covered
-$
 ```
 
 **Note:** Some of the tests in `src/bin/bech32.rs` are ignored by
