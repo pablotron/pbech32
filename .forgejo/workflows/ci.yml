@@ -33,26 +33,26 @@ jobs:
       - uses: actions/checkout@v4
       - run: cargo doc
 
-  # check code coverage
+  # check code coverage (disabled in forgejo for now)
   # - fails if coverage drops below 95%
   # - generates "tarpaulin-report.zip" artifact
-  coverage:
-    name: "coverage"
-    runs-on: "rust-x86-64"
-    container:
-      # note: x86-64-only image
-      image: "xd009642/tarpaulin:develop-nightly"
-      options: --security-opt seccomp=unconfined
-    steps:
-      - uses: actions/checkout@v4
-      # fail if code coverage is below 90%
-      #
-      # run tarpaulin with single thread and include ignored tests.
-      # this is to work around issues with threads for
-      # tests::action::test_from_env() in `src/bin/bech32.rs`
-      - run: |
-          cargo +nightly tarpaulin -j 1 -i -o stdout -o html --timeout 120 --fail-under 95
-      - uses: actions/upload-artifact@v4
-        with:
-          name: tarpaulin-report.zip
-          path: tarpaulin-report.html
+  # coverage:
+  #   name: "coverage"
+  #   runs-on: "rust-x86-64"
+  #   container:
+  #     # note: x86-64-only image
+  #     image: "xd009642/tarpaulin:develop-nightly"
+  #     options: --security-opt seccomp=unconfined
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     # fail if code coverage is below 95%
+  #     #
+  #     # run tarpaulin with single thread and include ignored tests.
+  #     # this is to work around issues with threads for
+  #     # tests::action::test_from_env() in `src/bin/bech32.rs`
+  #     - run: |
+  #         cargo +nightly tarpaulin -j 1 -i -o stdout -o html --timeout 120 --fail-under 95
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: tarpaulin-report.zip
+  #         path: tarpaulin-report.html
