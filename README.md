@@ -248,6 +248,7 @@ $ cargo tarpaulin -j1 -i
 ||
 93.67% coverage, 222/237 lines covered, +2.11% change in coverage
 ```
+
 [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
   "Bech32 (BIP173)"
 [bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
