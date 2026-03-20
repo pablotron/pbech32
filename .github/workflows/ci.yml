@@ -9,7 +9,7 @@ env:
 
 jobs:
   build_lint_test:
-    name: "${{ matrix.toolchain }}: build, lint, test"
+    name: "build, lint, test (${{ matrix.toolchain }})"
     runs-on: "ubuntu-latest"
     strategy:
       matrix:
@@ -18,7 +18,15 @@ jobs:
           - beta
           - nightly
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: rustup component add clippy
       - run: cargo build --verbose
@@ -29,7 +37,15 @@ jobs:
     name: "doc"
     runs-on: "ubuntu-latest"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
       - run: cargo doc
 
   # check code coverage
@@ -42,7 +58,7 @@ jobs:
       image: "xd009642/tarpaulin:develop-nightly"
       options: --security-opt seccomp=unconfined
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # fail if code coverage is below 90%
       #
       # run tarpaulin with single thread and include ignored tests.
