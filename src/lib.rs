@@ -1608,10 +1608,7 @@ impl<W: Write> std::io::Write for Encoder<W> {
 
 impl<W: Write> Drop for Encoder<W> {
   fn drop(&mut self) {
-
-    match self.flush() {
-      _ => return, // ignores error
-    }
+    let _ = self.flush(); // note: ignores error
   }
 }
 
