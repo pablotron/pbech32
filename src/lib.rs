@@ -87,9 +87,11 @@
 //! let mut vec: Vec<u8> = Vec::new(); // output vector
 //! let hrp: Hrp = "hello".parse()?; // human readable part
 //!
-//! let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
-//! encoder.write_all(b"folks")?; // write data
-//! encoder.flush()?; // flush encoder (REQUIRED)
+//! {
+//!   let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
+//!   encoder.write_all(b"folks")?; // write data
+//!   encoder.flush()?; // flush encoder (RECOMMENDED)
+//! }
 //!
 //! let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
 //! assert_eq!(got, "hello1vehkc6mn27xpct"); // check result
@@ -153,7 +155,7 @@
 // [x] bug: scheme: bech32m, hrp: "hi", data: "folks"
 // [x] increase/remove MAX_LEN (4k?)
 // [x] streaming/no-alloc api
-// [-] impl Drop for Encoder
+// [x] impl Drop for Encoder
 //     n/a: causes mutable borrow errors in tests
 // [-] use AsRef<str> for make() hrp param?
 //     n/a: utility method
@@ -173,8 +175,11 @@
 // [ ] docs, "what is bech32?": add "see also" with links to bip173,
 //     bip350, and https://learnmeabitcoin.com/technical/keys/bech32/
 // [ ] docs: features: add bullet about command-line tool
+// [ ] docs: update to document implicit flush during drop
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
+
+use std::io::Write;
 
 /// String parse error.
 ///
@@ -1405,9 +1410,35 @@ impl std::fmt::Display for Bech32 {
 /// let mut vec: Vec<u8> = Vec::new(); // output vector
 /// let hrp: Hrp = "hello".parse()?; // human readable part
 ///
-/// let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
-/// encoder.write_all(b"folks")?; // write data
-/// encoder.flush()?; // flush encoder (REQUIRED)
+/// {
+///   let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
+///   encoder.write_all(b"folks")?; // write data
+///   encoder.flush()?; // flush encoder (RECOMMENDED)
+/// }
+///
+/// let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
+/// assert_eq!(got, "hello1vehkc6mn27xpct"); // check result
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Dropping an [`Encoder`] will implicitly flush it and ignore any
+/// errors.  So the previous example can be without the call to
+/// `flush()` like this:
+///
+/// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// use std::io::Write;
+/// use pbech32::{Encoder, Hrp, Scheme};
+///
+/// let mut vec: Vec<u8> = Vec::new(); // output vector
+/// let hrp: Hrp = "hello".parse()?; // human readable part
+///
+/// {
+///   let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
+///   encoder.write_all(b"folks")?; // write data
+///   // encoder is dropped and implicitly flushed here
+/// }
 ///
 /// let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
 /// assert_eq!(got, "hello1vehkc6mn27xpct"); // check result
@@ -1425,11 +1456,13 @@ impl std::fmt::Display for Bech32 {
 /// let mut vec: Vec<u8> = Vec::new(); // output vector
 /// let hrp: Hrp = "hi".parse()?; // human readable part
 ///
-/// let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
-/// for chunk in vec![b"foo", b"bar", b"baz"] {
-///   encoder.write_all(chunk)?; // write chunk
+/// {
+///   let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
+///   for chunk in vec![b"foo", b"bar", b"baz"] {
+///     encoder.write_all(chunk)?; // write chunk
+///   }
+///   encoder.flush()?; // flush encoder (RECOMMENDED)
 /// }
-/// encoder.flush()?; // flush encoder (REQUIRED)
 ///
 /// let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
 /// assert_eq!(got, "hi1vehk7cnpwf3xz7skgej7x"); // check result
@@ -1444,7 +1477,7 @@ impl std::fmt::Display for Bech32 {
 ///   "writer"
 /// [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 ///   "Bech32 (BIP173)"
-pub struct Encoder<W: std::io::Write> {
+pub struct Encoder<W: Write> {
   scheme: Scheme, // checksum scheme
   sum: u32, // checksum
   buf: Vec<u8>, // fixed-size internal buffer (5 bytes)
@@ -1452,7 +1485,7 @@ pub struct Encoder<W: std::io::Write> {
   inner: W, // inner writer
 }
 
-impl<W: std::io::Write> Encoder<W> {
+impl<W: Write> Encoder<W> {
   /// Create streaming encoder.
   ///
   /// # Parameters
@@ -1473,9 +1506,11 @@ impl<W: std::io::Write> Encoder<W> {
   /// let mut vec: Vec<u8> = Vec::new(); // output vector
   /// let hrp: Hrp = "hello".parse()?; // human readable part
   ///
-  /// let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
-  /// encoder.write_all(b"folks")?; // write data
-  /// encoder.flush()?; // flush encoder (REQUIRED)
+  /// {
+  ///   let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
+  ///   encoder.write_all(b"folks")?; // write data
+  ///   encoder.flush()?; // flush encoder (RECOMMENDED)
+  /// }
   ///
   /// let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
   /// assert_eq!(got, "hello1vehkc6mn27xpct"); // check result
@@ -1533,7 +1568,7 @@ impl<W: std::io::Write> Encoder<W> {
   }
 }
 
-impl<W: std::io::Write> std::io::Write for Encoder<W> {
+impl<W: Write> std::io::Write for Encoder<W> {
   fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
     if self.done {
       return Ok(0); // stop if encoder is done
@@ -1571,16 +1606,14 @@ impl<W: std::io::Write> std::io::Write for Encoder<W> {
   }
 }
 
-// TODO: uncommenting this causes a immutable borrow error in the tests
-// impl<W: std::io::Write> Drop for Encoder<W> {
-//   use std::io::Write;
-//
-//   fn drop(&mut self) {
-//     match self.flush() {
-//       _ => return, // ignores error
-//     }
-//   }
-// }
+impl<W: Write> Drop for Encoder<W> {
+  fn drop(&mut self) {
+
+    match self.flush() {
+      _ => return, // ignores error
+    }
+  }
+}
 
 #[cfg(test)]
 mod tests {
@@ -2217,9 +2250,81 @@ mod tests {
       for (scheme, hrp, data, exp) in tests {
         let hrp: Hrp = hrp.parse().unwrap();
         let mut got: Vec<u8> = Vec::new();
-        let mut e = Encoder::new(&mut got, scheme, hrp).unwrap();
-        e.write_all(data.as_slice()).unwrap();
-        e.flush().unwrap(); // flush encoder
+        {
+          let mut e = Encoder::new(&mut got, scheme, hrp).unwrap();
+          e.write_all(data.as_slice()).unwrap();
+          e.flush().unwrap(); // flush encoder
+        }
+        assert_eq!(str::from_utf8(&got).unwrap(), exp);
+      }
+    }
+
+    #[test]
+    fn test_write_without_flush() {
+      let tests = vec![(
+        Scheme::Bech32m,
+        "a",
+        b"".to_vec(),
+        "a1lqfn3a",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"a".to_vec(),
+        "a1vyv2rgae",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"ab".to_vec(),
+        "a1v93qw2fnlx",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"abc".to_vec(),
+        "a1v93xx3s7l23",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"abcd".to_vec(),
+        "a1v93xxeq4gxvyc",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"abcde".to_vec(),
+        "a1v93xxer9zche3p",
+      ), (
+        Scheme::Bech32m,
+        "a",
+        b"abcdef".to_vec(),
+        "a1v93xxer9vczn72zl",
+      ), (
+        Scheme::Bech32m,
+        "ab",
+        b"cdef".to_vec(),
+        "ab1vdjx2es7ryzmh",
+      ), (
+        Scheme::Bech32m,
+        "hello",
+        b"folks".to_vec(),
+        "hello1vehkc6mn27xpct",
+      ), (
+        Scheme::Bech32m,
+        "blum",
+        b"flub".to_vec(),
+        "blum1vek82cskf3qwx",
+      ), (
+        Scheme::Bech32m,
+        "foo",
+        b"bar".to_vec(),
+        "foo1vfshy2dnlu3",
+      )];
+
+      for (scheme, hrp, data, exp) in tests {
+        let hrp: Hrp = hrp.parse().unwrap();
+        let mut got: Vec<u8> = Vec::new();
+        {
+          let mut e = Encoder::new(&mut got, scheme, hrp).unwrap();
+          e.write_all(data.as_slice()).unwrap();
+        }
         assert_eq!(str::from_utf8(&got).unwrap(), exp);
       }
     }
