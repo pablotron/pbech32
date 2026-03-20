@@ -563,7 +563,7 @@ pub mod bits {
     const SRC_BITS: usize, // input bit size (5 or 8)
     const DST_BITS: usize, // output bit size (5 or 8)
   >(len: usize) -> usize {
-    SRC_BITS * len / DST_BITS + ((len % DST_BITS) != 0) as usize
+    SRC_BITS * len / DST_BITS + (!len.is_multiple_of(DST_BITS)) as usize
   }
 
   /// Convert a slice of five 8-bit bytes into an array of eight 5-bit
