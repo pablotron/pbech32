@@ -71,5 +71,5 @@ jobs:
       - run: cargo +nightly tarpaulin --engine llvm -j1 -i -o html --timeout 120 --fail-under 95
       - uses: actions/upload-artifact@v3
         with:
-          name: tarpaulin-report.zip
+          name: tarpaulin-report
           path: tarpaulin-report.html
