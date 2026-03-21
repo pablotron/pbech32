@@ -47,21 +47,29 @@ jobs:
   # - generates "tarpaulin-report.zip" artifact
   coverage:
     name: "coverage"
-    runs-on: "rust-x86-64"
-    container:
-      # note: x86-64-only image
-      image: "xd009642/tarpaulin:develop-nightly"
-      options: --security-opt seccomp=unconfined
+    runs-on: "rust"
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: cargo install cargo-tarpaulin
+
       # fail if code coverage is below 95%
       #
-      # run tarpaulin with single thread and include ignored tests.
-      # this is to work around issues with threads for
+      # run tarpaulin with llvm engine, using single thread, and include
+      # ignored tests.
+      #
+      # this is to work around threading issues for
       # tests::action::test_from_env() in `src/bin/bech32.rs`
-      - run: |
-          cargo +nightly tarpaulin --engine llvm -j1 -i -o html --timeout 120 --fail-under 95
-      - uses: actions/upload-artifact@v5
+      - run: cargo +nightly tarpaulin --engine llvm -j1 -i -o html --timeout 120 --fail-under 95
+      - uses: actions/upload-artifact@v6
         with:
           name: tarpaulin-report.zip
           path: tarpaulin-report.html
