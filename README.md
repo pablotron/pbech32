@@ -84,16 +84,19 @@ use pbech32::{Encoder, Hrp, Scheme};
 let mut vec: Vec<u8> = Vec::new(); // output vector
 let hrp: Hrp = "hello".parse()?; // human readable part
 
-let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
-encoder.write_all(b"folks")?; // write data
-encoder.flush()?; // flush encoder (REQUIRED)
+{
+  let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
+  encoder.write_all(b"folks")?; // write data
+  encoder.flush()?; // flush encoder (RECOMMENDED)
+}
 
 let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
 assert_eq!(got, "hello1vehkc6mn27xpct"); // check result
 ```
 
-Many error variants have a context field. Try to decode a string
-which has an invalid character at position 1:
+Many error variants have a context field which provides additional
+information about the error. Try to decode a string which has an invalid
+character at position 1:
 
 ```rust
 use pbech32::{Bech32, Err};
