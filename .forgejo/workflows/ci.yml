@@ -69,7 +69,7 @@ jobs:
       # this is to work around threading issues for
       # tests::action::test_from_env() in `src/bin/bech32.rs`
       - run: cargo +nightly tarpaulin --engine llvm -j1 -i -o html --timeout 120 --fail-under 95
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v4
         with:
           name: tarpaulin-report.zip
           path: tarpaulin-report.html
