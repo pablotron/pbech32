@@ -99,8 +99,9 @@
 //! # }
 //! ```
 //!
-//! Many error variants have a context field. Try to decode a string
-//! which has an invalid character at position 1:
+//! Many error variants have a context field which provides additional
+//! information about the error. Try to decode a string which has an
+//! invalid character at position 1:
 //!
 //! ```
 //! # fn main() {
