@@ -19,8 +19,8 @@ jobs:
           - beta
           - nightly
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/cache@v5
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/
@@ -39,7 +39,7 @@ jobs:
     name: "doc"
     runs-on: "rust"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: cargo doc
 
   # check code coverage (disabled in forgejo for now)
@@ -53,7 +53,7 @@ jobs:
   #     image: "xd009642/tarpaulin:develop-nightly"
   #     options: --security-opt seccomp=unconfined
   #   steps:
-  #     - uses: actions/checkout@v5
+  #     - uses: actions/checkout@v6
   #     # fail if code coverage is below 95%
   #     #
   #     # run tarpaulin with single thread and include ignored tests.
@@ -61,7 +61,7 @@ jobs:
   #     # tests::action::test_from_env() in `src/bin/bech32.rs`
   #     - run: |
   #         cargo +nightly tarpaulin -j 1 -i -o stdout -o html --timeout 120 --fail-under 95
-  #     - uses: actions/upload-artifact@v4
+  #     - uses: actions/upload-artifact@v6
   #       with:
   #         name: tarpaulin-report.zip
   #         path: tarpaulin-report.html
