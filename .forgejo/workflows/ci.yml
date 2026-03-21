@@ -1,4 +1,3 @@
-# ported from .github/workflows/ci.yml w/ forgejo changes
 name: CI
 
 on:
@@ -59,14 +58,15 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: cargo install cargo-tarpaulin
+      - run: cargo install cargo-binstall
+      - run: cargo binstall --no-confirm cargo-tarpaulin
 
       # fail if code coverage is below 95%
       #
-      # run tarpaulin with llvm engine, using single thread, and include
-      # ignored tests.
+      # run with llvm engine, using single thread, and include ignored
+      # tests.
       #
-      # this is to work around threading issues for
+      # the single thread is to work around threading issues for
       # tests::action::test_from_env() in `src/bin/bech32.rs`
       - run: cargo +nightly tarpaulin --engine llvm -j1 -i -o html --timeout 120 --fail-under 95
       - uses: actions/upload-artifact@v3
