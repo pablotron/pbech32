@@ -219,17 +219,17 @@ Install [cargo-tarpaulin][] and use `cargo tarpaulin` to check code
 coverage:
 
 ```sh
-$ cargo tarpaulin
+$ cargo tarpaulin --engine llvm
 ...
-2026-03-08T07:38:10.235947Z  INFO cargo_tarpaulin::report: Coverage Results:
+2026-03-27T03:46:05.799963Z  INFO cargo_tarpaulin::report: Coverage Results:
 || Uncovered Lines:
 || src/bin/bech32.rs: 113-116, 119, 124, 126, 161, 206-209
-|| src/lib.rs: 799, 905-906, 923, 1494-1495, 1532, 1549
+|| src/lib.rs: 811
 || Tested/Total Lines:
-|| src/bin/bech32.rs: 27/39
-|| src/lib.rs: 190/198
+|| src/bin/bech32.rs: 28/40 +0.00%
+|| src/lib.rs: 196/197 +0.00%
 ||
-91.56% coverage, 217/237 lines covered
+94.51% coverage, 224/237 lines covered, +0.00% change in coverage
 ```
 
 **Note:** Some of the tests in `src/bin/bech32.rs` are ignored by
@@ -240,16 +240,16 @@ You can run the tests in a single thread and enable the ignored tests
 like this:
 
 ```sh
-$ cargo tarpaulin -j1 -i
-2026-03-08T07:38:49.813538Z  INFO cargo_tarpaulin::report: Coverage Results:
+$ cargo tarpaulin --engine llvm -j1 -i
+2026-03-27T03:46:30.385793Z  INFO cargo_tarpaulin::report: Coverage Results:
 || Uncovered Lines:
 || src/bin/bech32.rs: 119, 126, 161, 206-209
-|| src/lib.rs: 799, 905-906, 923, 1494-1495, 1532, 1549
+|| src/lib.rs: 811
 || Tested/Total Lines:
-|| src/bin/bech32.rs: 32/39 +12.82%
-|| src/lib.rs: 190/198 +0.00%
+|| src/bin/bech32.rs: 33/40 +12.50%
+|| src/lib.rs: 196/197 +0.00%
 ||
-93.67% coverage, 222/237 lines covered, +2.11% change in coverage
+96.62% coverage, 229/237 lines covered, +2.11% change in coverage
 ```
 
 [bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
