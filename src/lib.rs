@@ -179,6 +179,7 @@
 // [ ] docs: update to document implicit flush during drop
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
+// [ ] docs: add Encoder file example with no_run annotation
 
 use std::io::Write;
 
