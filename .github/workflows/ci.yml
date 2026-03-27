@@ -43,7 +43,7 @@ jobs:
 
   # check code coverage
   # - fails if coverage drops below 95%
-  # - generates "tarpaulin-report.zip" artifact
+  # - generates "pbech32-coverage-YYYYMMDD.zip" artifact
   coverage:
     name: "coverage"
     runs-on: "ubuntu-latest"
@@ -51,15 +51,16 @@ jobs:
       image: "xd009642/tarpaulin:develop-nightly"
       options: --security-opt seccomp=unconfined
     steps:
+      - run: echo "DATESTAMP=$(date +%Y%m%d)" >> $GITHUB_ENV
       - uses: actions/checkout@v6
-      # fail if code coverage is below 90%
+      # fail if code coverage is below 95%
       #
       # run tarpaulin with single thread and include ignored tests.
       # this is to work around issues with threads for
       # tests::action::test_from_env() in `src/bin/bech32.rs`
-      - run: |
-          cargo +nightly tarpaulin -j 1 -i -o stdout -o html --timeout 120 --fail-under 95
+      - run: cargo +nightly tarpaulin -j1 -i -o stdout -o html --timeout 120 --fail-under 95
+      - run: mv tarpaulin-report.html pbech32-coverage-${{ env.DATESTAMP }}.html
       - uses: actions/upload-artifact@v6
         with:
-          name: tarpaulin-report.zip
-          path: tarpaulin-report.html
+          name: pbech32-coverage-${{ env.DATESTAMP }}.zip
+          path: pbech32-coverage-${{ env.DATESTAMP }}.html
