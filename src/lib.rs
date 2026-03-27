@@ -171,12 +171,10 @@
 //     https://github.com/FiloSottile/age/blob/main/internal/bech32/bech32_test.go
 // [ ] docs: explain difference between this decoder and others
 //     (for example: appending zeros, maximum hrp len in age test)
-// [ ] docs: explain difference between this decoder and others
-//     (for example: appending zeros, maximum hrp len in age test)
-// [ ] docs, "what is bech32?": add "see also" with links to bip173,
+// [x] docs, "what is bech32?": add "see also" with links to bip173,
 //     bip350, and https://learnmeabitcoin.com/technical/keys/bech32/
 // [ ] docs: features: add bullet about command-line tool
-// [ ] docs: update to document implicit flush during drop
+// [ ] docs: document encoder drop implicit flush
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
 // [ ] docs: add Encoder file example with no_run annotation
