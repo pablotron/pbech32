@@ -116,6 +116,7 @@ exiting [Rust][] project:
 
 ```sh
 $ cargo add pbech32
+...
 ```
 
 Run `cargo install pbech32` to install the `bech32` tool:
@@ -160,7 +161,10 @@ example1vehk7cnpwf3xz7sfaj6vp
 To build a static binary of the example `bech32` tool in a container:
 
 ```sh
-$ podman run --rm -it -v "$PWD":/src -w /src rust sh -c "rustup target add $(arch)-unknown-linux-musl && cargo build --release --target $(arch)-unknown-linux-musl"
+$ podman run --rm -it -v "$PWD":/src -w /src rust sh -c "
+  rustup target add $(arch)-unknown-linux-musl &&
+  cargo build --release --target $(arch)-unknown-linux-musl
+"
 ...
 $ ldd target/x86_64-unknown-linux-musl/release/bech32
         statically linked
@@ -268,24 +272,14 @@ $ cargo tarpaulin --engine llvm -j1 -i
   "Checksum (Wikipedia)"
 [namespace]: https://en.wikipedia.org/wiki/Namespace
   "Namespace (Wikipedia)"
-[bch code]: https://en.wikipedia.org/wiki/BCH_code
-  "BCH code (Wikipedia)"
 [alphabet]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki#bech32
   "BIP173: Specification: Bech32"
 [writer]: https://doc.rust-lang.org/std/io/trait.Write.html
   "writer"
-[age encryption]: https://age-encryption.org/
-  "age encryption"
-[html]: https://en.wikipedia.org/wiki/HTML
-  "HyperText Markup Language"
 [rust]: https://rust-lang.org/
   "Rust programming language."
-[git repository]: https://github.com/pablotron/pbech32
-  "pbech32 git repository"
 [pbech32]: https://github.com/pablotron/pbech32
   "pbech32 Rust library"
-[cargo]: https://doc.rust-lang.org/cargo/
-  "Rust package manager"
 [podman]: https://podman.io/
   "Podman container management tool"
 [docker]: https://docker.com/
@@ -294,8 +288,6 @@ $ cargo tarpaulin --engine llvm -j1 -i
   "Application Programming Interface (API)"
 [linter]: https://en.wikipedia.org/wiki/Lint_(software)
   "Static code analysis tool to catch common mistakes"
-[crates.io]: https://crates.io/
-  "Rust package registry"
 [docs-rs-pbech32]: https://docs.rs/pbech32
   "pbech32 API documentation on docs.rs"
 [crates-io-pbech32]: https://crates.io/crates/pbech32
