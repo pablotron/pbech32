@@ -1,0 +1,10 @@
+# markdownlint configuration
+# ref: https://github.com/DavidAnson/markdownlint/blob/main/schema/.markdownlint.yaml
+
+# default settings
+default: true
+
+MD013:
+  # increase code block line length to 100 chars to handle long lines
+  # produced by `cargo test`, `cargo tarpaulin`, etc
+  code_block_line_length: 100
