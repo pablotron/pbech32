@@ -174,7 +174,8 @@
 // [x] docs, "what is bech32?": add "see also" with links to bip173,
 //     bip350, and https://learnmeabitcoin.com/technical/keys/bech32/
 // [ ] docs: features: add bullet about command-line tool
-// [ ] docs: document encoder drop implicit flush
+// [-] docs: document encoder drop implicit flush
+//     added to Encoder docs
 // [ ] find possible error positions in string
 //     ref: https://github.com/bitcoin/bitcoin/blob/master/src/bech32.cpp#L458
 // [ ] docs: add Encoder file example with no_run annotation
@@ -1422,9 +1423,12 @@ impl std::fmt::Display for Bech32 {
 /// # }
 /// ```
 ///
-/// Dropping an [`Encoder`] will implicitly flush it and ignore any
-/// errors.  So the previous example can be without the call to
-/// `flush()` like this:
+/// Dropping an [`Encoder`] will implicitly flush the [`Encoder`] and
+/// ignore any errors.
+///
+/// If you are encoding to a [writer][] where writes are unlikely to
+/// fail, then the previous example can be written without the call to
+/// `flush()`, like this:
 ///
 /// ```
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -1437,7 +1441,7 @@ impl std::fmt::Display for Bech32 {
 /// {
 ///   let mut encoder = Encoder::new(&mut vec, Scheme::Bech32m, hrp)?; // create encoder
 ///   encoder.write_all(b"folks")?; // write data
-///   // encoder is dropped and implicitly flushed here
+///   // encoder is implicitly flushed here
 /// }
 ///
 /// let got = str::from_utf8(vec.as_ref())?; // convert output vector to string
