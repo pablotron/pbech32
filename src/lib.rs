@@ -946,8 +946,8 @@ impl std::fmt::Display for Hrp {
 
 /// Parsed [Bech32][] structure with raw 5-bit `data` field.
 ///
-/// Use [`Bech32`] instead to automatically encode and decode / 8-bit
-/// data.
+/// **Note:** Use [`Bech32`] instead to automatically encode and decode
+/// 8-bit data.
 ///
 /// # Examples
 ///
